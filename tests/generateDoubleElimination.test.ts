@@ -245,24 +245,25 @@ describe('delayed losers bracket', () => {
     expect(delayedLosers).toHaveLength(fullLosers.length)
   })
 
-  it('generates correct structure for 8 participants with losersStartRoundsBeforeFinal=1', () => {
-    const matches = generateDoubleElimination({
-      eventId: 'event-1',
-      participants: createParticipants(8),
-      idFactory: createIdFactory(),
-      losersStartRoundsBeforeFinal: 1,
-    })
+  it('throws error for losersStartRoundsBeforeFinal=1 (would be single elim with 3rd place match)', () => {
+    expect(() =>
+      generateDoubleElimination({
+        eventId: 'event-1',
+        participants: createParticipants(8),
+        idFactory: createIdFactory(),
+        losersStartRoundsBeforeFinal: 1,
+      })
+    ).toThrow('losersStartRoundsBeforeFinal must be at least 2')
+  })
 
-    const winners = matches.filter((m) => m.bracketType === 'winners')
-    const losers = matches.filter((m) => m.bracketType === 'losers')
-
-    // 8 participants: 3 WB rounds (4+2+1=7)
-    expect(winners).toHaveLength(7)
-
-    // With losersStartRoundsBeforeFinal=1:
-    // Only SF losers go to LB (just 1 feeder round)
-    // LB rounds = 1 * 2 - 1 = 1
-    // LB R1: 1 match = 1 total
-    expect(losers).toHaveLength(1)
+  it('throws error if losersStartRoundsBeforeFinal >= winnersRounds', () => {
+    expect(() =>
+      generateDoubleElimination({
+        eventId: 'event-1',
+        participants: createParticipants(8), // 3 WB rounds
+        idFactory: createIdFactory(),
+        losersStartRoundsBeforeFinal: 3, // equals winnersRounds
+      })
+    ).toThrow('losersStartRoundsBeforeFinal must be less than winnersRounds')
   })
 })

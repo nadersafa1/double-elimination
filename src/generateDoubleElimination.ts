@@ -18,6 +18,20 @@ export const generateDoubleElimination = (
   const bracketSize = nextPowerOf2(participants.length)
   const winnersRounds = Math.log2(bracketSize)
 
+  // Validate losersStartRoundsBeforeFinal
+  if (losersStartRoundsBeforeFinal !== undefined) {
+    if (losersStartRoundsBeforeFinal < 2) {
+      throw new Error(
+        'losersStartRoundsBeforeFinal must be at least 2. Value of 1 would be single elimination with a 3rd place match, not double elimination.'
+      )
+    }
+    if (losersStartRoundsBeforeFinal >= winnersRounds) {
+      throw new Error(
+        `losersStartRoundsBeforeFinal must be less than winnersRounds (${winnersRounds})`
+      )
+    }
+  }
+
   // Calculate which WB round starts feeding into LB
   // Default: round 1 (full double elimination)
   const startFromWbRound = losersStartRoundsBeforeFinal

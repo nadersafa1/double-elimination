@@ -7,6 +7,7 @@ A TypeScript library for generating double elimination tournament brackets with 
 - Generates complete winners and losers bracket structures
 - Standard tournament seeding (1v8, 4v5, 2v7, 3v6 pattern)
 - Automatic bye advancement when participant count isn't a power of 2
+- **Delayed losers bracket start** - optionally eliminate early-round losers
 - Configurable ID generation via factory function
 - Full TypeScript support
 
@@ -41,11 +42,12 @@ Generates all matches for a double elimination bracket.
 
 #### Options
 
-| Property       | Type            | Description                                  |
-| -------------- | --------------- | -------------------------------------------- |
-| `eventId`      | `string`        | Identifier for the tournament event          |
-| `participants` | `Participant[]` | Array of participants with seeds             |
-| `idFactory`    | `() => string`  | Function that returns unique IDs for matches |
+| Property                       | Type            | Description                                                     |
+| ------------------------------ | --------------- | --------------------------------------------------------------- |
+| `eventId`                      | `string`        | Identifier for the tournament event                             |
+| `participants`                 | `Participant[]` | Array of participants with seeds                                |
+| `idFactory`                    | `() => string`  | Function that returns unique IDs for matches                    |
+| `losersStartRoundsBeforeFinal` | `number?`       | Rounds before finals where LB begins (min: 2). See below.       |
 
 #### Returns
 
@@ -128,6 +130,36 @@ const matches = generateDoubleElimination({
 ```
 
 Byes are pre-resolved at generation time - the advancing player is already placed in the next round.
+
+## Delayed Losers Bracket
+
+By default, all losers (except finals) drop to the losers bracket. Use `losersStartRoundsBeforeFinal` to start the losers bracket later - early round losers are permanently eliminated.
+
+```typescript
+// 16 players with losers bracket starting at Quarter-Finals
+const matches = generateDoubleElimination({
+  eventId: 'event-1',
+  participants: createParticipants(16),
+  idFactory: () => crypto.randomUUID(),
+  losersStartRoundsBeforeFinal: 2, // QF and SF losers go to LB
+})
+```
+
+### How It Works
+
+For 16 participants (4 WB rounds) with `losersStartRoundsBeforeFinal: 2`:
+
+| WB Round | Name    | Loser Fate                    |
+| -------- | ------- | ----------------------------- |
+| Round 1  | Ro16    | **Eliminated** (single elim)  |
+| Round 2  | QF      | Drops to LB R1                |
+| Round 3  | SF      | Drops to LB R2                |
+| Round 4  | Finals  | 2nd Place                     |
+
+### Constraints
+
+- **Minimum value: 2** - A value of 1 would just be single elimination with a 3rd place match
+- **Maximum value: winnersRounds - 1** - Cannot exceed available feeder rounds
 
 ## Example Output
 
