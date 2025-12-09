@@ -172,6 +172,7 @@ The library uses standard tournament seeding to ensure fair bracket placement:
 For 8 participants, Round 1 matchups are: `1v8, 4v5, 2v7, 3v6`
 
 For 32 participants:
+
 - Seed 1 is in matches 0-7 (top half)
 - Seed 2 is in matches 8-15 (bottom half)
 - Seeds 3-4 are in opposite quarters from seeds 1-2
