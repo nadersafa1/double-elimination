@@ -114,6 +114,15 @@ For `N` participants:
 - Receives losers from winners bracket rounds 1 and 2
 - Winners from losers bracket finals get 3rd place, loser gets 4th
 
+### Cross-Bracket Matchups
+
+To prevent potential rematches, losers from WB round 2+ are routed to **mirrored positions** in the losers bracket:
+
+- WB R2 pos 0 (top half) → faces LB R1 winner from bottom half
+- WB R2 pos N-1 (bottom half) → faces LB R1 winner from top half
+
+This ensures players from opposite sides of the winners bracket meet in the losers bracket.
+
 ## Bye Handling
 
 When participant count isn't a power of 2, byes are automatically created and processed:

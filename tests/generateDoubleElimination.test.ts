@@ -129,10 +129,12 @@ describe('generateDoubleElimination', () => {
 
     // Find which match position has seed 1 and seed 2
     const seed1MatchIdx = round1.findIndex(
-      (m) => m.registration1Id === 'player-1' || m.registration2Id === 'player-1'
+      (m) =>
+        m.registration1Id === 'player-1' || m.registration2Id === 'player-1'
     )
     const seed2MatchIdx = round1.findIndex(
-      (m) => m.registration1Id === 'player-2' || m.registration2Id === 'player-2'
+      (m) =>
+        m.registration1Id === 'player-2' || m.registration2Id === 'player-2'
     )
 
     // Seed 1 should be in top half (matches 0-7)
@@ -260,7 +262,7 @@ describe('delayed losers bracket', () => {
     expect(wbR2[3]?.loserToSlot).toBe(2)
   })
 
-  it('routes SF losers to LB R2 correctly', () => {
+  it('routes SF losers to LB R2 correctly (mirrored to avoid rematches)', () => {
     const matches = generateDoubleElimination({
       eventId: 'event-1',
       participants: createParticipants(16),
@@ -274,12 +276,12 @@ describe('delayed losers bracket', () => {
     const wbR3 = winners.filter((m) => m.round === 3)
     const lbR2 = losers.filter((m) => m.round === 2)
 
-    // SF match 0 loser → LB R2 match 0 slot 2
-    expect(wbR3[0]?.loserTo).toBe(lbR2[0]?.id)
+    // SF match 0 loser → LB R2 match 1 (mirrored position) slot 2
+    expect(wbR3[0]?.loserTo).toBe(lbR2[1]?.id)
     expect(wbR3[0]?.loserToSlot).toBe(2)
 
-    // SF match 1 loser → LB R2 match 1 slot 2
-    expect(wbR3[1]?.loserTo).toBe(lbR2[1]?.id)
+    // SF match 1 loser → LB R2 match 0 (mirrored position) slot 2
+    expect(wbR3[1]?.loserTo).toBe(lbR2[0]?.id)
     expect(wbR3[1]?.loserToSlot).toBe(2)
   })
 

@@ -66,12 +66,16 @@ const getLoserDestination = (
     };
   }
 
+  // For relativeRound >= 2, mirror position to create cross-bracket matchups
+  // This prevents rematches between players from the same bracket side
+  const matchCount = Math.pow(2, totalWbRounds - wbRound);
+  const mirroredPosition = matchCount - 1 - wbPosition;
+
   if (relativeRound === 2) {
     // Second feeder round losers → LB Round 2
-    // LB position = same as WB position, slot = 2
     return {
       lbRound: 2,
-      lbPosition: wbPosition,
+      lbPosition: mirroredPosition,
       slot: 2,
     };
   }
@@ -80,7 +84,7 @@ const getLoserDestination = (
   const lbRound = (relativeRound - 2) * 2 + 2;
   return {
     lbRound,
-    lbPosition: wbPosition,
+    lbPosition: mirroredPosition,
     slot: 2,
   };
 };
