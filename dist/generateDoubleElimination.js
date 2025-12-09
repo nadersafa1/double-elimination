@@ -1,0 +1,60 @@
+import { nextPowerOf2 } from './bracketUtils';
+import { createWinnersBracket } from './createWinnersBracket';
+import { createLosersBracket } from './createLosersBracket';
+import { wireLoserRouting } from './wireLoserRouting';
+import { processByes } from './processByes';
+export const generateDoubleElimination = (options) => {
+    const { eventId, participants, idFactory } = options;
+    if (participants.length < 2) {
+        throw new Error('At least 2 participants required');
+    }
+    const bracketSize = nextPowerOf2(participants.length);
+    const winnersRounds = Math.log2(bracketSize);
+    // No grand finals: WB finals loser = 2nd, so LB ends one round earlier
+    const losersRounds = (winnersRounds - 1) * 2 - 1;
+    // Sort participants by seed
+    const sorted = [...participants].sort((a, b) => a.seed - b.seed);
+    // Create bracket structures
+    const winnersMatches = createWinnersBracket(eventId, bracketSize, winnersRounds, idFactory);
+    const losersMatches = createLosersBracket(eventId, bracketSize, losersRounds, idFactory);
+    // Wire loser routing from winners to losers bracket
+    wireLoserRouting(winnersMatches, losersMatches, winnersRounds);
+    // Place participants in first round (seeded positions)
+    placeParticipants(winnersMatches, sorted, bracketSize);
+    const allMatches = [...winnersMatches, ...losersMatches];
+    // Process byes (auto-advance where opponent is missing)
+    processByes(allMatches);
+    return allMatches;
+};
+const placeParticipants = (matches, participants, bracketSize) => {
+    const round1 = matches.filter((m) => m.round === 1);
+    const seedMap = new Map(participants.map((p) => [p.seed, p.registrationId]));
+    // Standard seeding: 1vN, 4v(N-3), 2v(N-1), 3v(N-2) pattern
+    const pairs = generateSeedPairs(bracketSize);
+    pairs.forEach(([seed1, seed2], idx) => {
+        const match = round1[idx];
+        if (match) {
+            match.registration1Id = seedMap.get(seed1) ?? null;
+            match.registration2Id = seedMap.get(seed2) ?? null;
+        }
+    });
+};
+const generateSeedPairs = (size) => {
+    const pairs = [];
+    const buildPairs = (positions) => {
+        if (positions.length === 2) {
+            pairs.push([positions[0], positions[1]]);
+            return;
+        }
+        const half = positions.length / 2;
+        const upper = positions.slice(0, half);
+        const lower = positions.slice(half);
+        for (let i = 0; i < half / 2; i++) {
+            buildPairs([upper[i], lower[half - 1 - i]]);
+            buildPairs([upper[half - 1 - i], lower[i]]);
+        }
+    };
+    const seeds = Array.from({ length: size }, (_, i) => i + 1);
+    buildPairs(seeds);
+    return pairs;
+};
