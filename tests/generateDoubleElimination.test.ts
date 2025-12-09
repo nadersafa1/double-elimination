@@ -114,6 +114,67 @@ describe('generateDoubleElimination', () => {
     ).length
     expect(advancedCount).toBeGreaterThan(0)
   })
+
+  it('seeds 1 and 2 are in opposite halves for 32 participants', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(32),
+      idFactory: createIdFactory(),
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const round1 = winners
+      .filter((m) => m.round === 1)
+      .sort((a, b) => a.matchNumber - b.matchNumber)
+
+    // Find which match position has seed 1 and seed 2
+    const seed1MatchIdx = round1.findIndex(
+      (m) => m.registration1Id === 'player-1' || m.registration2Id === 'player-1'
+    )
+    const seed2MatchIdx = round1.findIndex(
+      (m) => m.registration1Id === 'player-2' || m.registration2Id === 'player-2'
+    )
+
+    // Seed 1 should be in top half (matches 0-7)
+    // Seed 2 should be in bottom half (matches 8-15)
+    expect(seed1MatchIdx).toBeGreaterThanOrEqual(0)
+    expect(seed1MatchIdx).toBeLessThan(8)
+    expect(seed2MatchIdx).toBeGreaterThanOrEqual(8)
+    expect(seed2MatchIdx).toBeLessThan(16)
+  })
+
+  it('seeds 1, 2, 3, 4 are in different quarters for 32 participants', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(32),
+      idFactory: createIdFactory(),
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const round1 = winners
+      .filter((m) => m.round === 1)
+      .sort((a, b) => a.matchNumber - b.matchNumber)
+
+    const findSeedQuarter = (seed: number) => {
+      const matchIdx = round1.findIndex(
+        (m) =>
+          m.registration1Id === `player-${seed}` ||
+          m.registration2Id === `player-${seed}`
+      )
+      return Math.floor(matchIdx / 4) // 0-3 = Q0, 4-7 = Q1, 8-11 = Q2, 12-15 = Q3
+    }
+
+    const quarters = [
+      findSeedQuarter(1),
+      findSeedQuarter(2),
+      findSeedQuarter(3),
+      findSeedQuarter(4),
+    ]
+
+    // All 4 seeds should be in different quarters
+    const uniqueQuarters = new Set(quarters)
+    expect(uniqueQuarters.size).toBe(4)
+  })
 })
 
 describe('delayed losers bracket', () => {

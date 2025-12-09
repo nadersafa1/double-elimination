@@ -5,7 +5,7 @@ A TypeScript library for generating double elimination tournament brackets with 
 ## Features
 
 - Generates complete winners and losers bracket structures
-- Standard tournament seeding (1v8, 4v5, 2v7, 3v6 pattern)
+- **Proper standard tournament seeding** - ensures seeds 1 and 2 can only meet in finals, seeds 1-4 can only meet in semifinals, etc.
 - Automatic bye advancement when participant count isn't a power of 2
 - **Delayed losers bracket start** - optionally eliminate early-round losers
 - Configurable ID generation via factory function
@@ -160,6 +160,21 @@ For 16 participants (4 WB rounds) with `losersStartRoundsBeforeFinal: 2`:
 
 - **Minimum value: 2** - A value of 1 would just be single elimination with a 3rd place match
 - **Maximum value: winnersRounds - 1** - Cannot exceed available feeder rounds
+
+## Seeding
+
+The library uses standard tournament seeding to ensure fair bracket placement:
+
+- **Seeds 1 and 2** can only meet in the Finals
+- **Seeds 1-4** can only meet in Semifinals or later
+- **Seeds 1-8** can only meet in Quarterfinals or later
+
+For 8 participants, Round 1 matchups are: `1v8, 4v5, 2v7, 3v6`
+
+For 32 participants:
+- Seed 1 is in matches 0-7 (top half)
+- Seed 2 is in matches 8-15 (bottom half)
+- Seeds 3-4 are in opposite quarters from seeds 1-2
 
 ## Example Output
 

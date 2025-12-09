@@ -1,6 +1,6 @@
 {
   "name": "double-elimination",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Generate double elimination tournament brackets with automatic seeding and bye handling",
   "main": "dist/index.js",
   "module": "dist/index.js",

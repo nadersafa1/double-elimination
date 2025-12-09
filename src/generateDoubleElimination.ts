@@ -103,22 +103,33 @@ const placeParticipants = (
   })
 }
 
+/**
+ * Generate seed pairs using standard tournament seeding algorithm.
+ * This ensures seeds 1 and 2 can only meet in the finals,
+ * seeds 1-4 can only meet in semifinals at earliest, etc.
+ */
 const generateSeedPairs = (size: number): [number, number][] => {
-  const pairs: [number, number][] = []
-  const buildPairs = (positions: number[]): void => {
-    if (positions.length === 2) {
-      pairs.push([positions[0], positions[1]])
-      return
+  // Build positions array iteratively, doubling each time
+  // [1, 2] -> [1, 4, 2, 3] -> [1, 8, 4, 5, 2, 7, 3, 6] -> ...
+  let positions = [1, 2]
+
+  while (positions.length < size) {
+    const newPositions: number[] = []
+    const sum = positions.length * 2 + 1
+
+    for (const pos of positions) {
+      newPositions.push(pos)
+      newPositions.push(sum - pos)
     }
-    const half = positions.length / 2
-    const upper = positions.slice(0, half)
-    const lower = positions.slice(half)
-    for (let i = 0; i < half / 2; i++) {
-      buildPairs([upper[i], lower[half - 1 - i]])
-      buildPairs([upper[half - 1 - i], lower[i]])
-    }
+
+    positions = newPositions
   }
-  const seeds = Array.from({ length: size }, (_, i) => i + 1)
-  buildPairs(seeds)
+
+  // Convert positions array to match pairs
+  // Adjacent positions form a match
+  const pairs: [number, number][] = []
+  for (let i = 0; i < positions.length; i += 2) {
+    pairs.push([positions[i], positions[i + 1]])
+  }
   return pairs
 }
