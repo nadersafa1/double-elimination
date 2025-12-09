@@ -8,7 +8,8 @@ import { processByes } from './processByes'
 export const generateDoubleElimination = (
   options: GeneratorOptions
 ): BracketMatch[] => {
-  const { eventId, participants, idFactory } = options
+  const { eventId, participants, idFactory, losersStartRoundsBeforeFinal } =
+    options
 
   if (participants.length < 2) {
     throw new Error('At least 2 participants required')
@@ -16,8 +17,20 @@ export const generateDoubleElimination = (
 
   const bracketSize = nextPowerOf2(participants.length)
   const winnersRounds = Math.log2(bracketSize)
-  // No grand finals: WB finals loser = 2nd, so LB ends one round earlier
-  const losersRounds = (winnersRounds - 1) * 2 - 1
+
+  // Calculate which WB round starts feeding into LB
+  // Default: round 1 (full double elimination)
+  const startFromWbRound = losersStartRoundsBeforeFinal
+    ? winnersRounds - losersStartRoundsBeforeFinal
+    : 1
+
+  // Number of WB rounds that feed losers (excludes finals)
+  const feederRounds = losersStartRoundsBeforeFinal
+    ? losersStartRoundsBeforeFinal
+    : winnersRounds - 1
+
+  // LB rounds = feederRounds * 2 - 1
+  const losersRounds = feederRounds * 2 - 1
 
   // Sort participants by seed
   const sorted = [...participants].sort((a, b) => a.seed - b.seed)
@@ -33,11 +46,17 @@ export const generateDoubleElimination = (
     eventId,
     bracketSize,
     losersRounds,
+    startFromWbRound,
     idFactory
   )
 
   // Wire loser routing from winners to losers bracket
-  wireLoserRouting(winnersMatches, losersMatches, winnersRounds)
+  wireLoserRouting(
+    winnersMatches,
+    losersMatches,
+    winnersRounds,
+    startFromWbRound
+  )
 
   // Place participants in first round (seeded positions)
   placeParticipants(winnersMatches, sorted, bracketSize)

@@ -4,6 +4,7 @@ export const createLosersBracket = (
   eventId: string,
   bracketSize: number,
   rounds: number,
+  startFromWbRound: number,
   idFactory: IdFactory
 ): BracketMatch[] => {
   const matches: BracketMatch[] = [];
@@ -13,7 +14,7 @@ export const createLosersBracket = (
   // Odd rounds (crossover): receive fresh losers, fewer matches
   // Even rounds (consolidation): no new entries
   for (let round = 1; round <= rounds; round++) {
-    const matchCount = getLosersMatchCount(bracketSize, round);
+    const matchCount = getLosersMatchCount(bracketSize, round, startFromWbRound);
 
     for (let pos = 0; pos < matchCount; pos++) {
       const matchId = idFactory();
@@ -42,11 +43,19 @@ export const createLosersBracket = (
   return matches;
 };
 
-const getLosersMatchCount = (bracketSize: number, round: number): number => {
+const getLosersMatchCount = (
+  bracketSize: number,
+  round: number,
+  startFromWbRound: number
+): number => {
+  // For delayed losers bracket, calculate effective bracket size
+  // based on which WB round starts feeding losers
+  const effectiveBracketSize = bracketSize / Math.pow(2, startFromWbRound - 1);
+
   // Pattern: pairs of rounds with same match count, then halves
-  // R1,R2: bracketSize/4, R3,R4: bracketSize/8, R5,R6: bracketSize/16...
-  // Formula: bracketSize / 2^(ceil(round/2) + 1)
-  return bracketSize / Math.pow(2, Math.ceil(round / 2) + 1);
+  // R1,R2: effectiveBracketSize/4, R3,R4: effectiveBracketSize/8...
+  // Formula: effectiveBracketSize / 2^(ceil(round/2) + 1)
+  return effectiveBracketSize / Math.pow(2, Math.ceil(round / 2) + 1);
 };
 
 const wireLosersBracketWinners = (

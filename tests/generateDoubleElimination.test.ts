@@ -115,3 +115,154 @@ describe('generateDoubleElimination', () => {
     expect(advancedCount).toBeGreaterThan(0)
   })
 })
+
+describe('delayed losers bracket', () => {
+  it('generates compressed LB for 16 participants with losersStartRoundsBeforeFinal=2', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(16),
+      idFactory: createIdFactory(),
+      losersStartRoundsBeforeFinal: 2,
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    // 16 participants: 4 WB rounds (8+4+2+1=15 matches)
+    expect(winners).toHaveLength(15)
+
+    // With losersStartRoundsBeforeFinal=2:
+    // LB rounds = 2 * 2 - 1 = 3
+    // LB R1: 2 matches, LB R2: 2 matches, LB R3: 1 match = 5 total
+    expect(losers).toHaveLength(5)
+  })
+
+  it('only routes losers from QF onwards (16 players, startRounds=2)', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(16),
+      idFactory: createIdFactory(),
+      losersStartRoundsBeforeFinal: 2,
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+
+    // Round 1 (Ro16) losers should NOT route to LB (single elimination)
+    const wbR1 = winners.filter((m) => m.round === 1)
+    wbR1.forEach((m) => {
+      expect(m.loserTo).toBeNull()
+    })
+
+    // Round 2 (QF) losers SHOULD route to LB
+    const wbR2 = winners.filter((m) => m.round === 2)
+    wbR2.forEach((m) => {
+      expect(m.loserTo).not.toBeNull()
+    })
+
+    // Round 3 (SF) losers SHOULD route to LB
+    const wbR3 = winners.filter((m) => m.round === 3)
+    wbR3.forEach((m) => {
+      expect(m.loserTo).not.toBeNull()
+    })
+
+    // Round 4 (Finals) loser should NOT route (2nd place)
+    const wbR4 = winners.filter((m) => m.round === 4)
+    wbR4.forEach((m) => {
+      expect(m.loserTo).toBeNull()
+    })
+  })
+
+  it('routes QF losers to LB R1 correctly', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(16),
+      idFactory: createIdFactory(),
+      losersStartRoundsBeforeFinal: 2,
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    const wbR2 = winners.filter((m) => m.round === 2)
+    const lbR1 = losers.filter((m) => m.round === 1)
+
+    // QF match 0 and 1 losers → LB R1 match 0
+    expect(wbR2[0]?.loserTo).toBe(lbR1[0]?.id)
+    expect(wbR2[0]?.loserToSlot).toBe(1)
+    expect(wbR2[1]?.loserTo).toBe(lbR1[0]?.id)
+    expect(wbR2[1]?.loserToSlot).toBe(2)
+
+    // QF match 2 and 3 losers → LB R1 match 1
+    expect(wbR2[2]?.loserTo).toBe(lbR1[1]?.id)
+    expect(wbR2[2]?.loserToSlot).toBe(1)
+    expect(wbR2[3]?.loserTo).toBe(lbR1[1]?.id)
+    expect(wbR2[3]?.loserToSlot).toBe(2)
+  })
+
+  it('routes SF losers to LB R2 correctly', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(16),
+      idFactory: createIdFactory(),
+      losersStartRoundsBeforeFinal: 2,
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    const wbR3 = winners.filter((m) => m.round === 3)
+    const lbR2 = losers.filter((m) => m.round === 2)
+
+    // SF match 0 loser → LB R2 match 0 slot 2
+    expect(wbR3[0]?.loserTo).toBe(lbR2[0]?.id)
+    expect(wbR3[0]?.loserToSlot).toBe(2)
+
+    // SF match 1 loser → LB R2 match 1 slot 2
+    expect(wbR3[1]?.loserTo).toBe(lbR2[1]?.id)
+    expect(wbR3[1]?.loserToSlot).toBe(2)
+  })
+
+  it('behaves as full double elim when losersStartRoundsBeforeFinal equals WB rounds - 1', () => {
+    // For 8 participants with 3 WB rounds, setting losersStartRoundsBeforeFinal=2
+    // should be equivalent to full double elim (all rounds except finals feed LB)
+    const fullDoubleElim = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(8),
+      idFactory: createIdFactory(),
+    })
+
+    const delayedStart = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(8),
+      idFactory: createIdFactory(),
+      losersStartRoundsBeforeFinal: 2, // 3 WB rounds - 1 = 2
+    })
+
+    const fullLosers = fullDoubleElim.filter((m) => m.bracketType === 'losers')
+    const delayedLosers = delayedStart.filter((m) => m.bracketType === 'losers')
+
+    // Should have same number of losers matches
+    expect(delayedLosers).toHaveLength(fullLosers.length)
+  })
+
+  it('generates correct structure for 8 participants with losersStartRoundsBeforeFinal=1', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(8),
+      idFactory: createIdFactory(),
+      losersStartRoundsBeforeFinal: 1,
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    // 8 participants: 3 WB rounds (4+2+1=7)
+    expect(winners).toHaveLength(7)
+
+    // With losersStartRoundsBeforeFinal=1:
+    // Only SF losers go to LB (just 1 feeder round)
+    // LB rounds = 1 * 2 - 1 = 1
+    // LB R1: 1 match = 1 total
+    expect(losers).toHaveLength(1)
+  })
+})

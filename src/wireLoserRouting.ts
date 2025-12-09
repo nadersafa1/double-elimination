@@ -3,13 +3,19 @@ import { BracketMatch } from './types';
 export const wireLoserRouting = (
   winnersMatches: BracketMatch[],
   losersMatches: BracketMatch[],
-  winnersRounds: number
+  winnersRounds: number,
+  startFromWbRound: number = 1
 ): void => {
   const losersIdMap = buildLosersIdMap(losersMatches);
 
   for (const match of winnersMatches) {
     const { round, bracketPosition } = match;
-    const routing = getLoserDestination(round, bracketPosition, winnersRounds);
+    const routing = getLoserDestination(
+      round,
+      bracketPosition,
+      winnersRounds,
+      startFromWbRound
+    );
 
     if (routing) {
       const targetId = losersIdMap.get(`${routing.lbRound}-${routing.lbPosition}`);
@@ -38,13 +44,20 @@ interface LoserDestination {
 const getLoserDestination = (
   wbRound: number,
   wbPosition: number,
-  totalWbRounds: number
+  totalWbRounds: number,
+  startFromWbRound: number
 ): LoserDestination | null => {
   // WB Finals: winner=1st, loser=2nd (no routing to LB)
-  if (wbRound === totalWbRounds) return null
+  if (wbRound === totalWbRounds) return null;
 
-  if (wbRound === 1) {
-    // Round 1 losers → LB Round 1
+  // Skip rounds before losers bracket starts (single elimination portion)
+  if (wbRound < startFromWbRound) return null;
+
+  // Calculate relative round (treating startFromWbRound as "round 1")
+  const relativeRound = wbRound - startFromWbRound + 1;
+
+  if (relativeRound === 1) {
+    // First feeder round losers → LB Round 1
     // LB position = floor(WB_position / 2), slot = (WB_position % 2) + 1
     return {
       lbRound: 1,
@@ -53,8 +66,8 @@ const getLoserDestination = (
     };
   }
 
-  if (wbRound === 2) {
-    // Round 2 losers → LB Round 2
+  if (relativeRound === 2) {
+    // Second feeder round losers → LB Round 2
     // LB position = same as WB position, slot = 2
     return {
       lbRound: 2,
@@ -63,8 +76,8 @@ const getLoserDestination = (
     };
   }
 
-  // Round 3+ losers: LB_round = (WB_round - 2) * 2 + 2
-  const lbRound = (wbRound - 2) * 2 + 2;
+  // Third+ feeder round losers: LB_round = (relativeRound - 2) * 2 + 2
+  const lbRound = (relativeRound - 2) * 2 + 2;
   return {
     lbRound,
     lbPosition: wbPosition,
