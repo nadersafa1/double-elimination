@@ -42,12 +42,12 @@ Generates all matches for a double elimination bracket.
 
 #### Options
 
-| Property                       | Type            | Description                                                     |
-| ------------------------------ | --------------- | --------------------------------------------------------------- |
-| `eventId`                      | `string`        | Identifier for the tournament event                             |
-| `participants`                 | `Participant[]` | Array of participants with seeds                                |
-| `idFactory`                    | `() => string`  | Function that returns unique IDs for matches                    |
-| `losersStartRoundsBeforeFinal` | `number?`       | Rounds before finals where LB begins (min: 2). See below.       |
+| Property                       | Type            | Description                                               |
+| ------------------------------ | --------------- | --------------------------------------------------------- |
+| `eventId`                      | `string`        | Identifier for the tournament event                       |
+| `participants`                 | `Participant[]` | Array of participants with seeds                          |
+| `idFactory`                    | `() => string`  | Function that returns unique IDs for matches              |
+| `losersStartRoundsBeforeFinal` | `number?`       | Rounds before finals where LB begins (min: 2). See below. |
 
 #### Returns
 
@@ -149,12 +149,12 @@ const matches = generateDoubleElimination({
 
 For 16 participants (4 WB rounds) with `losersStartRoundsBeforeFinal: 2`:
 
-| WB Round | Name    | Loser Fate                    |
-| -------- | ------- | ----------------------------- |
-| Round 1  | Ro16    | **Eliminated** (single elim)  |
-| Round 2  | QF      | Drops to LB R1                |
-| Round 3  | SF      | Drops to LB R2                |
-| Round 4  | Finals  | 2nd Place                     |
+| WB Round | Name   | Loser Fate                   |
+| -------- | ------ | ---------------------------- |
+| Round 1  | Ro16   | **Eliminated** (single elim) |
+| Round 2  | QF     | Drops to LB R1               |
+| Round 3  | SF     | Drops to LB R2               |
+| Round 4  | Finals | 2nd Place                    |
 
 ### Constraints
 
