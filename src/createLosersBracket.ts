@@ -1,4 +1,4 @@
-import { BracketMatch, IdFactory } from './types';
+import { BracketMatch, IdFactory } from './types'
 
 export const createLosersBracket = (
   eventId: string,
@@ -7,18 +7,18 @@ export const createLosersBracket = (
   startFromWbRound: number,
   idFactory: IdFactory
 ): BracketMatch[] => {
-  const matches: BracketMatch[] = [];
-  const matchIdMap = new Map<string, string>();
+  const matches: BracketMatch[] = []
+  const matchIdMap = new Map<string, string>()
 
   // Calculate matches per round
   // Odd rounds (crossover): receive fresh losers, fewer matches
   // Even rounds (consolidation): no new entries
   for (let round = 1; round <= rounds; round++) {
-    const matchCount = getLosersMatchCount(bracketSize, round, startFromWbRound);
+    const matchCount = getLosersMatchCount(bracketSize, round, startFromWbRound)
 
     for (let pos = 0; pos < matchCount; pos++) {
-      const matchId = idFactory();
-      matchIdMap.set(`${round}-${pos}`, matchId);
+      const matchId = idFactory()
+      matchIdMap.set(`${round}-${pos}`, matchId)
 
       matches.push({
         id: matchId,
@@ -33,15 +33,15 @@ export const createLosersBracket = (
         loserTo: null,
         loserToSlot: null,
         bracketType: 'losers',
-      });
+      })
     }
   }
 
   // Wire winner routing within losers bracket
-  wireLosersBracketWinners(matches, matchIdMap, rounds);
+  wireLosersBracketWinners(matches, matchIdMap, rounds)
 
-  return matches;
-};
+  return matches
+}
 
 const getLosersMatchCount = (
   bracketSize: number,
@@ -50,13 +50,13 @@ const getLosersMatchCount = (
 ): number => {
   // For delayed losers bracket, calculate effective bracket size
   // based on which WB round starts feeding losers
-  const effectiveBracketSize = bracketSize / Math.pow(2, startFromWbRound - 1);
+  const effectiveBracketSize = bracketSize / Math.pow(2, startFromWbRound - 1)
 
   // Pattern: pairs of rounds with same match count, then halves
   // R1,R2: effectiveBracketSize/4, R3,R4: effectiveBracketSize/8...
   // Formula: effectiveBracketSize / 2^(ceil(round/2) + 1)
-  return effectiveBracketSize / Math.pow(2, Math.ceil(round / 2) + 1);
-};
+  return effectiveBracketSize / Math.pow(2, Math.ceil(round / 2) + 1)
+}
 
 const wireLosersBracketWinners = (
   matches: BracketMatch[],
@@ -71,11 +71,13 @@ const wireLosersBracketWinners = (
     let nextSlot: number
 
     if (isOddRound) {
-      // Odd → Even (within pair): same position, slot 1
+      // From Crossover Round (odd) → Consolidation Round (even)
+      // Next round has same match count, so same position, slot 1
       nextPos = match.bracketPosition
       nextSlot = 1
     } else {
-      // Even → Odd (crossing pairs): halve position, alternating slots
+      // From Consolidation Round (even) → Crossover Round (odd)
+      // Next round has half the matches, so halve position, alternating slots
       nextPos = Math.floor(match.bracketPosition / 2)
       nextSlot = (match.bracketPosition % 2) + 1
     }
@@ -87,4 +89,3 @@ const wireLosersBracketWinners = (
     }
   }
 }
-

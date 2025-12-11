@@ -116,12 +116,15 @@ For `N` participants:
 
 ### Cross-Bracket Matchups
 
-To prevent potential rematches, losers from WB round 2+ are routed to **mirrored positions** in the losers bracket:
+To prevent early rematches, losers from the winners bracket are routed using a specific pattern:
 
-- WB R2 pos 0 (top half) → faces LB R1 winner from bottom half
-- WB R2 pos N-1 (bottom half) → faces LB R1 winner from top half
+- **Round 1 losers**: Grouped by position pairs (floor(position/2))
+- **Round 2 losers**: **REVERSED positions** - players from top half face bottom half LB winners, and vice versa
+  - WB R2 pos 0 (top half) → LB R2 pos N-1 (faces bottom half LB R1 winner)
+  - WB R2 pos N-1 (bottom half) → LB R2 pos 0 (faces top half LB R1 winner)
+- **Round 3+ losers**: Use **SAME positions** (not mirrored) to continue the crossover pattern
 
-This ensures players from opposite sides of the winners bracket meet in the losers bracket.
+This ensures players from opposite sides of the winners bracket meet in the losers bracket, preventing rematches until later rounds.
 
 ## Bye Handling
 

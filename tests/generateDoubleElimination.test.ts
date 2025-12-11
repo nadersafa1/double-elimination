@@ -330,3 +330,156 @@ describe('delayed losers bracket', () => {
     ).toThrow('losersStartRoundsBeforeFinal must be less than winnersRounds')
   })
 })
+
+describe('rematch prevention', () => {
+  it('routes WB Round 2 losers with reversed positions for 8 participants', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(8),
+      idFactory: createIdFactory(),
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    const wbR2 = winners
+      .filter((m) => m.round === 2)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+    const lbR2 = losers
+      .filter((m) => m.round === 2)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+
+    // WB R2 has 2 matches (positions 0 and 1)
+    // With reversal: WB R2 pos 0 → LB R2 pos 1, WB R2 pos 1 → LB R2 pos 0
+    expect(wbR2[0]?.loserTo).toBe(lbR2[1]?.id)
+    expect(wbR2[0]?.loserToSlot).toBe(2)
+    expect(wbR2[1]?.loserTo).toBe(lbR2[0]?.id)
+    expect(wbR2[1]?.loserToSlot).toBe(2)
+  })
+
+  it('routes WB Round 2 losers with reversed positions for 32 participants', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(32),
+      idFactory: createIdFactory(),
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    const wbR2 = winners
+      .filter((m) => m.round === 2)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+    const lbR2 = losers
+      .filter((m) => m.round === 2)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+
+    // WB R2 has 8 matches (positions 0-7)
+    // With reversal: WB R2 pos 0 → LB R2 pos 7, WB R2 pos 7 → LB R2 pos 0
+    const totalMatches = wbR2.length
+    expect(wbR2[0]?.loserTo).toBe(lbR2[totalMatches - 1]?.id)
+    expect(wbR2[0]?.loserToSlot).toBe(2)
+    expect(wbR2[totalMatches - 1]?.loserTo).toBe(lbR2[0]?.id)
+    expect(wbR2[totalMatches - 1]?.loserToSlot).toBe(2)
+
+    // Verify middle positions are also reversed
+    const midPos = Math.floor(totalMatches / 2)
+    expect(wbR2[midPos]?.loserTo).toBe(lbR2[totalMatches - 1 - midPos]?.id)
+  })
+
+  it('routes WB Round 3+ losers with same positions (not mirrored) for 32 participants', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(32),
+      idFactory: createIdFactory(),
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    const wbR3 = winners
+      .filter((m) => m.round === 3)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+    const lbR4 = losers
+      .filter((m) => m.round === 4)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+
+    // WB R3 has 4 matches (positions 0-3)
+    // Should use same positions: WB R3 pos 0 → LB R4 pos 0, etc.
+    for (let i = 0; i < wbR3.length; i++) {
+      expect(wbR3[i]?.loserTo).toBe(lbR4[i]?.id)
+      expect(wbR3[i]?.loserToSlot).toBe(2)
+    }
+
+    // Verify Round 4 as well
+    const wbR4 = winners
+      .filter((m) => m.round === 4)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+    const lbR6 = losers
+      .filter((m) => m.round === 6)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+
+    // WB R4 has 2 matches (positions 0-1)
+    // Should use same positions
+    for (let i = 0; i < wbR4.length; i++) {
+      expect(wbR4[i]?.loserTo).toBe(lbR6[i]?.id)
+      expect(wbR4[i]?.loserToSlot).toBe(2)
+    }
+  })
+
+  it('prevents early rematches by ensuring Round 2 reversal separates bracket halves', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(16),
+      idFactory: createIdFactory(),
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    // Track which players are in top half vs bottom half of WB R2
+    const wbR2 = winners
+      .filter((m) => m.round === 2)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+
+    // Top half of WB R2 (positions 0-1) should go to bottom half of LB R2
+    // Bottom half of WB R2 (positions 2-3) should go to top half of LB R2
+    const lbR2 = losers
+      .filter((m) => m.round === 2)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+
+    // Verify reversal: top WB → bottom LB, bottom WB → top LB
+    const totalMatches = wbR2.length
+    expect(wbR2[0]?.loserTo).toBe(lbR2[totalMatches - 1]?.id) // Top → Bottom
+    expect(wbR2[totalMatches - 1]?.loserTo).toBe(lbR2[0]?.id) // Bottom → Top
+  })
+
+  it('generates correct losers bracket match counts for 32 participants', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(32),
+      idFactory: createIdFactory(),
+    })
+
+    const losers = matches
+      .filter((m) => m.bracketType === 'losers')
+      .sort((a, b) => {
+        if (a.round !== b.round) return a.round - b.round
+        return a.bracketPosition - b.bracketPosition
+      })
+
+    // Expected: R1: 8, R2: 8, R3: 4, R4: 4, R5: 2, R6: 2, R7: 1
+    const roundCounts = new Map<number, number>()
+    for (const match of losers) {
+      roundCounts.set(match.round, (roundCounts.get(match.round) || 0) + 1)
+    }
+
+    expect(roundCounts.get(1)).toBe(8)
+    expect(roundCounts.get(2)).toBe(8)
+    expect(roundCounts.get(3)).toBe(4)
+    expect(roundCounts.get(4)).toBe(4)
+    expect(roundCounts.get(5)).toBe(2)
+    expect(roundCounts.get(6)).toBe(2)
+    expect(roundCounts.get(7)).toBe(1)
+  })
+})

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2024-12-11
+
+### Fixed
+
+- **Critical rematch prevention fix**: Fixed incorrect loser routing that caused early rematches in the losers bracket. The routing now follows the correct double elimination pattern:
+  - **Round 1 losers**: Grouped by position (floor(position/2)) - unchanged
+  - **Round 2 losers**: REVERSED positions to prevent rematches between players from the same bracket half
+    - Example: WB R2 pos 0 (top half) → LB R2 pos N-1 (bottom half)
+    - Example: WB R2 pos N-1 (bottom half) → LB R2 pos 0 (top half)
+  - **Round 3+ losers**: Use SAME positions (not mirrored) to continue the crossover pattern correctly
+  - This ensures players from opposite sides of the winners bracket meet in the losers bracket, preventing early rematches
+  - Works correctly with delayed losers bracket (`losersStartRoundsBeforeFinal`)
+
+### Added
+
+- Comprehensive test suite to verify rematch prevention for various bracket sizes
+
 ## [1.1.2] - 2024-12-09
 
 ### Fixed
