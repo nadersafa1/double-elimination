@@ -5,7 +5,8 @@ export const createLosersBracket = (
   bracketSize: number,
   rounds: number,
   startFromWbRound: number,
-  idFactory: IdFactory
+  idFactory: IdFactory,
+  totalWbRounds: number
 ): BracketMatch[] => {
   const matches: BracketMatch[] = []
   const matchIdMap = new Map<string, string>()
@@ -14,7 +15,12 @@ export const createLosersBracket = (
   // Odd rounds (crossover): receive fresh losers, fewer matches
   // Even rounds (consolidation): no new entries
   for (let round = 1; round <= rounds; round++) {
-    const matchCount = getLosersMatchCount(bracketSize, round, startFromWbRound)
+    const matchCount = getLosersMatchCount(
+      bracketSize,
+      round,
+      startFromWbRound,
+      totalWbRounds
+    )
 
     for (let pos = 0; pos < matchCount; pos++) {
       const matchId = idFactory()
@@ -46,8 +52,15 @@ export const createLosersBracket = (
 const getLosersMatchCount = (
   bracketSize: number,
   round: number,
-  startFromWbRound: number
+  startFromWbRound: number,
+  totalWbRounds: number
 ): number => {
+  // Special case: losersStartRoundsBeforeFinal=1 means only semifinal losers
+  // This creates a single 3rd place match (round 1 only)
+  if (startFromWbRound === totalWbRounds - 1) {
+    return round === 1 ? 1 : 0
+  }
+
   // For delayed losers bracket, calculate effective bracket size
   // based on which WB round starts feeding losers
   const effectiveBracketSize = bracketSize / Math.pow(2, startFromWbRound - 1)

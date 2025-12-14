@@ -58,6 +58,20 @@ const getLoserDestination = (
   // Calculate relative round (treating startFromWbRound as "round 1")
   const relativeRound = wbRound - startFromWbRound + 1
 
+  // Special case: losersStartRoundsBeforeFinal=1 means only semifinal losers go to LB
+  // This creates a single 3rd place match
+  if (startFromWbRound === totalWbRounds - 1) {
+    // Only semifinal losers go to LB Round 1 (3rd place match)
+    if (wbRound === totalWbRounds - 1) {
+      return {
+        lbRound: 1,
+        lbPosition: 0,
+        slot: wbPosition + 1, // First semifinal loser goes to slot 1, second to slot 2
+      }
+    }
+    return null
+  }
+
   if (relativeRound === 1) {
     // First feeder round losers → LB Round 1
     // LB position = floor(WB_position / 2), slot = (WB_position % 2) + 1
@@ -83,6 +97,7 @@ const getLoserDestination = (
   // Third+ feeder round losers: LB_round = (relativeRound - 2) * 2 + 2
   // Use SAME position (not mirrored) to continue crossover pattern
   const lbRound = (relativeRound - 2) * 2 + 2
+  
   return {
     lbRound,
     lbPosition: wbPosition, // Same position, not mirrored

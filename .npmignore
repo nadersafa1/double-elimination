@@ -1,0 +1,46 @@
+# Source files (only dist/ is published)
+src/
+*.ts
+!*.d.ts
+
+# Test files
+tests/
+*.test.ts
+*.spec.ts
+coverage/
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.log
+npm-debug.log*
+
+# Documentation (keep README.md, exclude others)
+EXAMPLES.md
+CONTRIBUTING.md
+CHANGELOG.md
+
+# Build tools
+tsconfig.json
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Demo files
+demo.ts
+
+# CI/CD
+.github/
+.git/
+
+# Package manager
+package-lock.json
+

@@ -27,11 +27,16 @@ export interface GeneratorOptions {
   /**
    * Number of rounds before the finals where the losers bracket begins.
    * Players who lose before this point are permanently eliminated.
+   *
+   * - 0: Pure single elimination (no losers bracket)
+   * - 1: Single elimination with 3rd place match (only semifinal losers go to LB)
+   * - 2+: Delayed double elimination (losers from specified rounds go to LB)
+   * - undefined: Full double elimination (all rounds except finals feed LB)
+   *
    * Example: For 16 players (4 rounds), setting this to 2 means:
    * - Round 1: Single elimination (losers out)
    * - Rounds 2-3 (QF, SF): Losers go to losers bracket
    * - Round 4 (Finals): Loser = 2nd place
-   * If undefined, full double elimination is used.
    */
   losersStartRoundsBeforeFinal?: number
 }

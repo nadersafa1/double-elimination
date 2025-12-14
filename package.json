@@ -1,6 +1,6 @@
 {
   "name": "double-elimination",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Generate double elimination tournament brackets with automatic seeding and bye handling",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -21,10 +21,28 @@
     "esports",
     "competition",
     "seeding",
-    "sports"
+    "sports",
+    "tournament-bracket",
+    "bracket-generator",
+    "tournament-management",
+    "esports-tournament",
+    "competition-bracket",
+    "single-elimination",
+    "tournament-seeding",
+    "bracket-algorithm",
+    "tournament-software",
+    "match-scheduling"
   ],
-  "author": "",
+  "author": "nadersafa1",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nadersafa1/double-elimination.git"
+  },
+  "homepage": "https://github.com/nadersafa1/double-elimination#readme",
+  "bugs": {
+    "url": "https://github.com/nadersafa1/double-elimination/issues"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.3.0",

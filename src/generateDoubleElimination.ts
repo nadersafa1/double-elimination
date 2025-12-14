@@ -8,8 +8,12 @@ import { processByes } from './processByes'
 export const generateDoubleElimination = (
   options: GeneratorOptions
 ): BracketMatch[] => {
-  const { eventId, participants, idFactory, losersStartRoundsBeforeFinal } =
-    options
+  const {
+    eventId,
+    participants,
+    idFactory,
+    losersStartRoundsBeforeFinal,
+  } = options
 
   if (participants.length < 2) {
     throw new Error('At least 2 participants required')
@@ -20,9 +24,16 @@ export const generateDoubleElimination = (
 
   // Validate losersStartRoundsBeforeFinal
   if (losersStartRoundsBeforeFinal !== undefined) {
-    if (losersStartRoundsBeforeFinal < 2) {
+    if (losersStartRoundsBeforeFinal < 0) {
       throw new Error(
-        'losersStartRoundsBeforeFinal must be at least 2. Value of 1 would be single elimination with a 3rd place match, not double elimination.'
+        'losersStartRoundsBeforeFinal must be at least 0 (0 = pure single elimination)'
+      )
+    }
+    // Special case: losersStartRoundsBeforeFinal=1 requires at least 4 participants (semifinals)
+    // Check this before the >= winnersRounds check
+    if (losersStartRoundsBeforeFinal === 1 && winnersRounds < 2) {
+      throw new Error(
+        'losersStartRoundsBeforeFinal=1 requires at least 4 participants (semifinals needed)'
       )
     }
     if (losersStartRoundsBeforeFinal >= winnersRounds) {
@@ -34,17 +45,28 @@ export const generateDoubleElimination = (
 
   // Calculate which WB round starts feeding into LB
   // Default: round 1 (full double elimination)
-  const startFromWbRound = losersStartRoundsBeforeFinal
+  const startFromWbRound = losersStartRoundsBeforeFinal !== undefined
     ? winnersRounds - losersStartRoundsBeforeFinal
     : 1
 
   // Number of WB rounds that feed losers (excludes finals)
-  const feederRounds = losersStartRoundsBeforeFinal
+  const feederRounds = losersStartRoundsBeforeFinal !== undefined
     ? losersStartRoundsBeforeFinal
     : winnersRounds - 1
 
-  // LB rounds = feederRounds * 2 - 1
-  const losersRounds = feederRounds * 2 - 1
+  // Calculate losers bracket rounds
+  // For losersStartRoundsBeforeFinal=0: no losers bracket
+  // For losersStartRoundsBeforeFinal=1: only 1 match (3rd place)
+  // For losersStartRoundsBeforeFinal>=2: standard double elimination
+  let losersRounds = 0
+  if (losersStartRoundsBeforeFinal === 0) {
+    losersRounds = 0 // Pure single elimination
+  } else if (losersStartRoundsBeforeFinal === 1) {
+    losersRounds = 1 // Single match for 3rd place
+  } else {
+    // Standard: LB rounds = feederRounds * 2 - 1
+    losersRounds = feederRounds * 2 - 1
+  }
 
   // Sort participants by seed
   const sorted = [...participants].sort((a, b) => a.seed - b.seed)
@@ -56,21 +78,26 @@ export const generateDoubleElimination = (
     winnersRounds,
     idFactory
   )
-  const losersMatches = createLosersBracket(
-    eventId,
-    bracketSize,
-    losersRounds,
-    startFromWbRound,
-    idFactory
-  )
 
-  // Wire loser routing from winners to losers bracket
-  wireLoserRouting(
-    winnersMatches,
-    losersMatches,
-    winnersRounds,
-    startFromWbRound
-  )
+  let losersMatches: BracketMatch[] = []
+  if (losersRounds > 0) {
+    losersMatches = createLosersBracket(
+      eventId,
+      bracketSize,
+      losersRounds,
+      startFromWbRound,
+      idFactory,
+      winnersRounds
+    )
+
+    // Wire loser routing from winners to losers bracket
+    wireLoserRouting(
+      winnersMatches,
+      losersMatches,
+      winnersRounds,
+      startFromWbRound
+    )
+  }
 
   // Place participants in first round (seeded positions)
   placeParticipants(winnersMatches, sorted, bracketSize)

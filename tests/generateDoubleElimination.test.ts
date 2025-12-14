@@ -308,15 +308,87 @@ describe('delayed losers bracket', () => {
     expect(delayedLosers).toHaveLength(fullLosers.length)
   })
 
-  it('throws error for losersStartRoundsBeforeFinal=1 (would be single elim with 3rd place match)', () => {
+  it('allows losersStartRoundsBeforeFinal=1 (single elim with 3rd place match)', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(8),
+      idFactory: createIdFactory(),
+      losersStartRoundsBeforeFinal: 1,
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    // Should have winners bracket (7 matches for 8 participants)
+    expect(winners).toHaveLength(7)
+
+    // Should have only 1 losers match (3rd place)
+    expect(losers).toHaveLength(1)
+
+    // Only semifinal losers should route to LB
+    const wbR2 = winners.filter((m) => m.round === 2) // Semifinals
+    wbR2.forEach((m) => {
+      expect(m.loserTo).not.toBeNull()
+    })
+
+    // Round 1 losers should NOT route to LB
+    const wbR1 = winners.filter((m) => m.round === 1)
+    wbR1.forEach((m) => {
+      expect(m.loserTo).toBeNull()
+    })
+  })
+
+  it('allows losersStartRoundsBeforeFinal=0 (pure single elimination)', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(8),
+      idFactory: createIdFactory(),
+      losersStartRoundsBeforeFinal: 0,
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    // Should have winners bracket only
+    expect(winners).toHaveLength(7)
+    expect(losers).toHaveLength(0)
+
+    // No losers should route to LB
+    winners.forEach((m) => {
+      expect(m.loserTo).toBeNull()
+    })
+  })
+
+  it('allows losersStartRoundsBeforeFinal=0 with 2 participants (minimum case)', () => {
+    const matches = generateDoubleElimination({
+      eventId: 'event-1',
+      participants: createParticipants(2),
+      idFactory: createIdFactory(),
+      losersStartRoundsBeforeFinal: 0,
+    })
+
+    const winners = matches.filter((m) => m.bracketType === 'winners')
+    const losers = matches.filter((m) => m.bracketType === 'losers')
+
+    // Should have winners bracket only (1 match for 2 participants)
+    expect(winners).toHaveLength(1)
+    expect(losers).toHaveLength(0)
+
+    // No losers should route to LB
+    winners.forEach((m) => {
+      expect(m.loserTo).toBeNull()
+    })
+  })
+
+  it('throws error for losersStartRoundsBeforeFinal=1 with fewer than 4 participants', () => {
     expect(() =>
       generateDoubleElimination({
         eventId: 'event-1',
-        participants: createParticipants(8),
+        participants: createParticipants(2), // Only 2 participants = 1 WB round
         idFactory: createIdFactory(),
         losersStartRoundsBeforeFinal: 1,
       })
-    ).toThrow('losersStartRoundsBeforeFinal must be at least 2')
+    ).toThrow('losersStartRoundsBeforeFinal=1 requires at least 4 participants')
   })
 
   it('throws error if losersStartRoundsBeforeFinal >= winnersRounds', () => {
@@ -329,6 +401,7 @@ describe('delayed losers bracket', () => {
       })
     ).toThrow('losersStartRoundsBeforeFinal must be less than winnersRounds')
   })
+
 })
 
 describe('rematch prevention', () => {
