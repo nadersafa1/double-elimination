@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
 [![GitHub stars](https://img.shields.io/github/stars/nadersafa1/double-elimination.svg?style=social)](https://github.com/nadersafa1/double-elimination)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Try_it!-6366f1.svg)](https://nadersafa1.github.io/double-elimination/)
 
 A TypeScript library for generating double elimination tournament brackets with automatic seeding and bye handling. Perfect for esports tournaments, sports competitions, and any competitive event management system.
 

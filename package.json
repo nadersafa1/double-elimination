@@ -1,6 +1,6 @@
 {
   "name": "double-elimination",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Generate double elimination tournament brackets with automatic seeding and bye handling",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -12,7 +12,10 @@
     "build": "tsc",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "website:dev": "cd website && npm run dev",
+    "website:build": "cd website && npm run build",
+    "website:install": "cd website && npm install"
   },
   "keywords": [
     "tournament",
@@ -39,7 +42,7 @@
     "type": "git",
     "url": "https://github.com/nadersafa1/double-elimination.git"
   },
-  "homepage": "https://github.com/nadersafa1/double-elimination#readme",
+  "homepage": "https://nadersafa1.github.io/double-elimination/",
   "bugs": {
     "url": "https://github.com/nadersafa1/double-elimination/issues"
   },

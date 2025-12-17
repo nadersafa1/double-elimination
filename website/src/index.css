@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --color-background: #0a0a0f;
+  --color-foreground: #ffffff;
+  --color-muted: #a0a0b0;
+  --color-muted-foreground: #6a6a7a;
+
+  --color-card: #1a1a25;
+  --color-card-foreground: #ffffff;
+  --color-card-hover: #222230;
+
+  --color-primary: #6366f1;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #8b5cf6;
+  --color-secondary-foreground: #ffffff;
+  --color-tertiary: #ec4899;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+
+  --color-border: #2a2a3a;
+  --color-ring: #6366f1;
+  --color-accent: #1f1f2e;
+  --color-accent-foreground: #ffffff;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Spacing scale */
+  --spacing-section: 7rem;
+  --spacing-component: 2rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  line-height: 1.6;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: white;
+}
