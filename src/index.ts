@@ -1,7 +1,9 @@
-export { generateDoubleElimination } from './generateDoubleElimination'
+export { generateDoubleElimination } from './generateDoubleElimination.js'
 export type {
   Participant,
   BracketMatch,
+  BracketType,
+  GrandFinalFormat,
   IdFactory,
   GeneratorOptions,
-} from './types'
+} from './types.js'

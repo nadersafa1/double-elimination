@@ -11,6 +11,7 @@ This document provides comprehensive examples of using the `double-elimination` 
 - [Single Elimination Mode](#single-elimination-mode)
 - [Delayed Losers Bracket](#delayed-losers-bracket)
 - [Handling Odd Participant Counts](#handling-odd-participant-counts)
+- [Grand Final](#grand-final)
 - [Integration with Database](#integration-with-database)
 - [Visualizing Brackets](#visualizing-brackets)
 - [Custom ID Generation](#custom-id-generation)
@@ -73,7 +74,7 @@ const smallTournament = generateDoubleElimination({
 
 // Get first round matches
 const round1 = smallTournament.filter(
-  (m) => m.round === 1 && m.bracketType === 'winners'
+  (m) => m.round === 1 && m.bracketType === 'winners',
 )
 console.log('Round 1 matchups:')
 round1.forEach((match) => {
@@ -81,7 +82,7 @@ round1.forEach((match) => {
 })
 // Output:
 //   alice vs diana
-//   charlie vs bob
+//   bob vs charlie
 ```
 
 ## Medium Tournament (16-32 Participants)
@@ -109,12 +110,15 @@ const esportsBracket = generateDoubleElimination({
 })
 
 // Organize matches by round
-const matchesByRound = esportsBracket.reduce((acc, match) => {
-  const key = `${match.bracketType}-round-${match.round}`
-  if (!acc[key]) acc[key] = []
-  acc[key].push(match)
-  return acc
-}, {} as Record<string, typeof esportsBracket>)
+const matchesByRound = esportsBracket.reduce(
+  (acc, match) => {
+    const key = `${match.bracketType}-round-${match.round}`
+    if (!acc[key]) acc[key] = []
+    acc[key].push(match)
+    return acc
+  },
+  {} as Record<string, typeof esportsBracket>,
+)
 
 console.log('Tournament structure:')
 Object.keys(matchesByRound).forEach((key) => {
@@ -140,7 +144,7 @@ const largeBracket = generateDoubleElimination({
 })
 
 console.log(`Total matches: ${largeBracket.length}`)
-// Output: Total matches: 62
+// Output: Total matches: 60 (31 winners + 29 losers)
 ```
 
 ## Large Tournament (64+ Participants)
@@ -166,10 +170,10 @@ const stats = {
 console.log('Tournament Statistics:', stats)
 // Output:
 // {
-//   totalMatches: 126,
+//   totalMatches: 124,
 //   winnersMatches: 63,
-//   losersMatches: 63,
-//   totalRounds: 6
+//   losersMatches: 61,
+//   totalRounds: 9   // the losers bracket runs 9 rounds; the winners bracket 6
 // }
 ```
 
@@ -227,7 +231,7 @@ const delayedLB = generateDoubleElimination({
 
 // Round 1 losers are eliminated (no LB matches for them)
 const round1Losers = delayedLB.filter(
-  (m) => m.round === 1 && m.bracketType === 'winners'
+  (m) => m.round === 1 && m.bracketType === 'winners',
 )
 console.log(`Round 1 matches: ${round1Losers.length}`)
 // Round 1 losers don't have corresponding LB matches
@@ -237,7 +241,8 @@ console.log(`Round 1 matches: ${round1Losers.length}`)
 
 ### Tournament with 7 Participants
 
-Automatic bye handling:
+Byes are resolved at generation time, so nothing in the bracket waits on a
+player who does not exist:
 
 ```typescript
 const oddCount = generateDoubleElimination({
@@ -246,13 +251,20 @@ const oddCount = generateDoubleElimination({
   idFactory: () => crypto.randomUUID(),
 })
 
-// Find matches with byes (null registration)
-const matchesWithByes = oddCount.filter(
-  (m) => m.registration1Id === null || m.registration2Id === null
+// A bye is a first round match with exactly one participant.
+const byes = oddCount.filter(
+  (m) =>
+    m.bracketType === 'winners' &&
+    m.round === 1 &&
+    (m.registration1Id === null) !== (m.registration2Id === null),
 )
 
-console.log(`Matches with byes: ${matchesWithByes.length}`)
-// Output: Matches with byes: 1 (seed 1 gets a bye in round 1)
+console.log(`Byes: ${byes.length}`)
+// Output: Byes: 1 (seed 1 gets a bye in round 1)
+
+// The bye winner is already placed in the next round, and the match produces
+// no loser, so it does not hold a losers bracket slot.
+console.log(byes[0].loserTo) // null
 ```
 
 ### Tournament with 13 Participants
@@ -264,13 +276,74 @@ const thirteenPlayers = generateDoubleElimination({
   idFactory: () => crypto.randomUUID(),
 })
 
-// Count byes
-const byeCount = thirteenPlayers.filter(
-  (m) => m.registration1Id === null || m.registration2Id === null
-).length
+const byes = thirteenPlayers.filter(
+  (m) =>
+    m.bracketType === 'winners' &&
+    m.round === 1 &&
+    (m.registration1Id === null) !== (m.registration2Id === null),
+)
 
-console.log(`Total byes: ${byeCount}`)
-// Output: Total byes: 3 (seeds 1, 2, 3 get byes)
+console.log(`Byes: ${byes.length}`)
+// Output: Byes: 3 (seeds 1, 2, 3 get byes)
+```
+
+### Telling "waiting" apart from "never happening"
+
+With byes, some losers bracket matches cannot be reached at all. They stay in
+the array so positions remain stable, but they carry no routing:
+
+```typescript
+const fed = new Set(
+  matches.flatMap((m) => [
+    m.winnerTo ? `${m.winnerTo}#${m.winnerToSlot}` : null,
+    m.loserTo ? `${m.loserTo}#${m.loserToSlot}` : null,
+  ]),
+)
+
+const isUnused = (match: BracketMatch) =>
+  match.registration1Id === null &&
+  match.registration2Id === null &&
+  !fed.has(`${match.id}#1`) &&
+  !fed.has(`${match.id}#2`)
+
+const playable = matches.filter((m) => !isUnused(m))
+```
+
+## Grand Final
+
+### Standard Double Elimination
+
+```typescript
+const matches = generateDoubleElimination({
+  eventId: 'fighting-game-major',
+  participants: createParticipants(16),
+  idFactory: () => crypto.randomUUID(),
+  grandFinal: 'reset',
+})
+
+const [grandFinal, reset] = matches
+  .filter((m) => m.bracketType === 'grandFinal')
+  .sort((a, b) => a.round - b.round)
+
+// Slot 1 is the winners bracket representative, slot 2 the losers bracket one.
+console.log(grandFinal.round) // 1
+console.log(reset.round) // 2
+```
+
+### Deciding Whether the Reset Is Played
+
+```typescript
+const reportGrandFinal = (winnerId: string) => {
+  const fromLosersBracket = winnerId === grandFinal.registration2Id
+
+  if (!fromLosersBracket) {
+    // The winners bracket representative is unbeaten: the reset is not played.
+    return { champion: winnerId, resetRequired: false }
+  }
+
+  // Both finalists now have one loss each, so they play again.
+  return { champion: null, resetRequired: true }
+}
 ```
 
 ## Integration with Database
@@ -305,7 +378,7 @@ async function createTournament(eventId: string, participants: Participant[]) {
       bracketType: match.bracketType,
       status: 'pending',
       createdAt: new Date(),
-    }))
+    })),
   )
 
   return matches
@@ -399,11 +472,12 @@ function getMatchDependencies(matches: BracketMatch[], matchId: string) {
   }
 }
 
-// Example: Find what matches feed into the winners bracket finals
-const finalsMatch = matches.find(
-  (m) =>
-    m.bracketType === 'winners' &&
-    m.round === Math.max(...matches.map((m) => m.round))
+// Example: Find what matches feed into the winners bracket finals.
+// Round numbers restart per bracket, so compare within the winners bracket:
+// the losers bracket runs more rounds than the winners bracket.
+const winners = matches.filter((m) => m.bracketType === 'winners')
+const finalsMatch = winners.find(
+  (m) => m.round === Math.max(...winners.map((w) => w.round)),
 )
 if (finalsMatch) {
   const deps = getMatchDependencies(matches, finalsMatch.id)
@@ -487,14 +561,14 @@ const matches = generateDoubleElimination({
 
 ```typescript
 function generateMultipleTournaments(
-  events: Array<{ eventId: string; participants: Participant[] }>
+  events: Array<{ eventId: string; participants: Participant[] }>,
 ) {
   return events.map((event) =>
     generateDoubleElimination({
       eventId: event.eventId,
       participants: event.participants,
       idFactory: () => crypto.randomUUID(),
-    })
+    }),
   )
 }
 

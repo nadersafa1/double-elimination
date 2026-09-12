@@ -1,75 +1,84 @@
-import { generateDoubleElimination, Participant } from './src'
+import {
+  generateDoubleElimination,
+  type GrandFinalFormat,
+} from './src/index.js'
 
-// Helper to create participants
-const createParticipants = (count: number): Participant[] =>
+const createParticipants = (count: number) =>
   Array.from({ length: count }, (_, i) => ({
     registrationId: `player-${i + 1}`,
     seed: i + 1,
   }))
 
-// Simple ID factory
 let idCounter = 0
 const idFactory = () => `m${++idCounter}`
 
-// Get participant count from CLI arg or default to 7
-const count = parseInt(process.argv[2] || '7', 10)
+// Usage: npm run demo -- [participants] [grandFinal: none|single|reset]
+const count = Number.parseInt(process.argv[2] || '7', 10)
+const grandFinal = (process.argv[3] as GrandFinalFormat) || 'none'
+
 const participants = createParticipants(count)
 const matches = generateDoubleElimination({
   eventId: 'event-1',
   participants,
   idFactory,
+  grandFinal,
 })
 
-console.log(matches)
+const label = (id: string | null) => id ?? '—'
 
-// Display results
-const winners = matches.filter((m) => m.bracketType === 'winners')
-const losers = matches.filter((m) => m.bracketType === 'losers')
+// A slot nobody feeds and nobody occupies can never be filled.
+const fedSlots = new Set<string>()
+for (const m of matches) {
+  if (m.winnerTo) fedSlots.add(`${m.winnerTo}#${m.winnerToSlot}`)
+  if (m.loserTo) fedSlots.add(`${m.loserTo}#${m.loserToSlot}`)
+}
+const canFill = (id: string, slot: 1 | 2, occupant: string | null) =>
+  occupant !== null || fedSlots.has(`${id}#${slot}`)
 
-const formatSlot = (id: string | null, round: number) => {
-  if (id) return id
-  return round === 1 ? 'BYE' : 'TBD'
+const printBracket = (
+  type: 'winners' | 'losers' | 'grandFinal',
+  title: string
+) => {
+  const bracket = matches.filter((m) => m.bracketType === type)
+  if (bracket.length === 0) return
+
+  console.log(`\n=== ${title} ===`)
+  const lastRound = Math.max(...bracket.map((m) => m.round))
+
+  for (let round = 1; round <= lastRound; round++) {
+    console.log(`\nRound ${round}:`)
+    bracket
+      .filter((m) => m.round === round)
+      .sort((a, b) => a.bracketPosition - b.bracketPosition)
+      .forEach((m) => {
+        const slot1 = canFill(m.id, 1, m.registration1Id)
+        const slot2 = canFill(m.id, 2, m.registration2Id)
+        const note =
+          !slot1 && !slot2
+            ? ' (unused: byes)'
+            : slot1 && slot2
+              ? ''
+              : ' (walkover)'
+        console.log(
+          `  [${m.bracketPosition}] ${m.id}: ${label(m.registration1Id)} vs ${label(
+            m.registration2Id
+          )}${note}` +
+            ` → W:${m.winnerTo ?? 'done'}${m.winnerToSlot ? `[${m.winnerToSlot}]` : ''}` +
+            ` L:${m.loserTo ?? 'out'}${m.loserToSlot ? `[${m.loserToSlot}]` : ''}`
+        )
+      })
+  }
 }
 
-console.log('=== WINNERS BRACKET ===')
-for (let r = 1; r <= Math.max(...winners.map((m) => m.round)); r++) {
-  console.log(`\nRound ${r}:`)
-  winners
-    .filter((m) => m.round === r)
-    .sort((a, b) => a.bracketPosition - b.bracketPosition)
-    .forEach((m) => {
-      const p1 = formatSlot(m.registration1Id, r)
-      const p2 = formatSlot(m.registration2Id, r)
-      console.log(
-        `  [pos ${m.bracketPosition}] ${m.id}: ${p1} vs ${p2} → W:${
-          m.winnerTo ?? 'GF'
-        }[${m.winnerToSlot}] L:${m.loserTo ?? 'GF'}[${m.loserToSlot}]`
-      )
-    })
-}
-
-console.log('\n=== LOSERS BRACKET ===')
-for (let r = 1; r <= Math.max(...losers.map((m) => m.round)); r++) {
-  console.log(`\nRound ${r}:`)
-  losers
-    .filter((m) => m.round === r)
-    .sort((a, b) => a.bracketPosition - b.bracketPosition)
-    .forEach((m) => {
-      const p1 = m.registration1Id ?? 'TBD'
-      const p2 = m.registration2Id ?? 'TBD'
-      console.log(
-        `  [pos ${m.bracketPosition}] ${m.id}: ${p1} vs ${p2} → W:${
-          m.winnerTo ?? 'GF'
-        }[${m.winnerToSlot}]`
-      )
-    })
-}
+printBracket('winners', 'WINNERS BRACKET')
+printBracket('losers', 'LOSERS BRACKET')
+printBracket('grandFinal', 'GRAND FINAL')
 
 console.log('\n=== SUMMARY ===')
-console.log(`Participants: ${participants.length}`)
-console.log(
-  `Bracket size: ${Math.pow(2, Math.ceil(Math.log2(participants.length)))}`
-)
-console.log(`Winners matches: ${winners.length}`)
-console.log(`Losers matches: ${losers.length}`)
-console.log(`Total matches: ${matches.length}`)
+console.log(`Participants:    ${participants.length}`)
+console.log(`Grand final:     ${grandFinal}`)
+for (const type of ['winners', 'losers', 'grandFinal'] as const) {
+  const count_ = matches.filter((m) => m.bracketType === type).length
+  if (count_ > 0) console.log(`${type.padEnd(16)} ${count_} matches`)
+}
+console.log(`Total matches:   ${matches.length}`)

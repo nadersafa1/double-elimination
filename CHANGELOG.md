@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-09-12
+
+### Fixed
+
+- **Byes no longer stall the losers bracket**: byes were only resolved in the
+  first winners round, so with any participant count that isn't a power of 2 the
+  losers bracket could contain matches that never became playable — a match
+  waiting on a loser that does not exist, or a match with no entrants at all —
+  and everything downstream of them stalled. Byes are now resolved through the
+  whole bracket: walkover winners are pre-placed, a walkover no longer reserves a
+  losers bracket slot (`loserTo` is `null`), and matches that could only ever
+  receive one player are bypassed so the feeding match points at what came next.
+  Unreachable matches are kept in the returned array with empty slots and no
+  routing, so round and position numbering stays stable for rendering.
+- **Published package now loads in Node**: the build emitted ES module syntax
+  into a package with no `"type": "module"` and extensionless relative imports,
+  so both `require('double-elimination')` and `import` failed outside a bundler.
+  The package now ships separate ESM and CommonJS builds behind an `exports` map,
+  verified on every CI run.
+- **Rematch prevention in large brackets**: losers from winners round 3 onwards
+  kept their bracket position, which let players meet opponents they had already
+  beaten as early as losers round 4. Each wave of losers is now reordered on a
+  rotating cycle (reverse, reverse-and-half-shift, half-shift, unchanged). Over
+  200 random 64-player tournaments this moves the first possible rematch from
+  losers round 4 to losers round 7 and cuts rematches from ~2.8 to ~0.4 per
+  tournament. Brackets of 16 or fewer are unchanged.
+- **Invalid participants are rejected instead of corrupting the bracket**: seeds
+  that were not exactly `1..N` silently left participants out of the bracket, and
+  duplicate seeds dropped players without warning. Participants are now ranked by
+  seed, so any unique ascending seed values work, and duplicate seeds, duplicate
+  `registrationId`s, non-numeric seeds, an `idFactory` that repeats ids, a
+  missing `eventId`, and a fractional `losersStartRoundsBeforeFinal` all throw.
+- **Exact bracket sizing**: `nextPowerOf2` used `Math.log2`, which is not
+  guaranteed to be exact for large inputs; sizing is now integer arithmetic.
+
+### Added
+
+- **Grand final support** via the `grandFinal` option:
+  - `'none'` (default) — unchanged behaviour: the winners final decides 1st/2nd
+    and the losers final decides 3rd/4th
+  - `'single'` — the winners final loser drops to the losers final and the two
+    bracket winners meet once for the title
+  - `'reset'` — as `'single'`, plus a bracket reset match, played only when the
+    losers bracket representative wins the first grand final
+    Grand final matches are returned with `bracketType: 'grandFinal'`.
+- `BracketType` and `GrandFinalFormat` are exported.
+- A `LICENSE` file, a CI workflow running typecheck, tests, build and a
+  published-entry-point check on Node 18, 20 and 22, and an `npm run demo`
+  script.
+
+### Changed
+
+- `bracketType` is now `'winners' | 'losers' | 'grandFinal'`. TypeScript code
+  that exhaustively narrows on it will need a `grandFinal` case, even though no
+  such match is produced unless the option is enabled.
+- Brackets of 32 or more participants have a different losers bracket layout
+  because of the routing fix above. A bracket generated with an earlier version
+  will not match one regenerated with this version — finish in-flight
+  tournaments on the version that created them.
+- The package is published as ESM with a CommonJS fallback; `src` is published
+  alongside `dist` so source maps resolve.
+
 ## [1.2.2] - 2024-12-16
 
 ### Changed
@@ -87,4 +149,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Winners and losers bracket routing
 - TypeScript support with full type definitions
 - Simplified format: WB Finals winner = 1st, loser = 2nd; LB Finals winner = 3rd, loser = 4th
-

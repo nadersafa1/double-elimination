@@ -27,3 +27,6 @@ coverage/
 .env
 .env.local
 
+
+# TypeScript build info
+*.tsbuildinfo

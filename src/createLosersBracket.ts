@@ -1,26 +1,31 @@
-import { BracketMatch, IdFactory } from './types'
+import { BracketMatch, IdFactory } from './types.js'
 
+/**
+ * Builds the losers bracket skeleton and wires winner advancement inside it.
+ *
+ * Round 1 pairs off the first wave of winners bracket losers. After that the
+ * rounds alternate: even rounds take a fresh wave of losers into slot 2 and so
+ * hold as many matches as the round before them, while odd rounds are played
+ * between losers bracket survivors only and halve the match count.
+ */
 export const createLosersBracket = (
   eventId: string,
   bracketSize: number,
   rounds: number,
   startFromWbRound: number,
-  idFactory: IdFactory,
-  totalWbRounds: number
+  idFactory: IdFactory
 ): BracketMatch[] => {
   const matches: BracketMatch[] = []
   const matchIdMap = new Map<string, string>()
 
-  // Calculate matches per round
-  // Odd rounds (crossover): receive fresh losers, fewer matches
-  // Even rounds (consolidation): no new entries
+  // Losers from winners rounds before startFromWbRound never enter the losers
+  // bracket, so it is sized as if the tournament started at that round.
+  const effectiveBracketSize = bracketSize / Math.pow(2, startFromWbRound - 1)
+
   for (let round = 1; round <= rounds; round++) {
-    const matchCount = getLosersMatchCount(
-      bracketSize,
-      round,
-      startFromWbRound,
-      totalWbRounds
-    )
+    // R1,R2 hold effectiveBracketSize/4 matches, R3,R4 half that, and so on.
+    const matchCount =
+      effectiveBracketSize / Math.pow(2, Math.ceil(round / 2) + 1)
 
     for (let pos = 0; pos < matchCount; pos++) {
       const matchId = idFactory()
@@ -43,32 +48,9 @@ export const createLosersBracket = (
     }
   }
 
-  // Wire winner routing within losers bracket
   wireLosersBracketWinners(matches, matchIdMap, rounds)
 
   return matches
-}
-
-const getLosersMatchCount = (
-  bracketSize: number,
-  round: number,
-  startFromWbRound: number,
-  totalWbRounds: number
-): number => {
-  // Special case: losersStartRoundsBeforeFinal=1 means only semifinal losers
-  // This creates a single 3rd place match (round 1 only)
-  if (startFromWbRound === totalWbRounds - 1) {
-    return round === 1 ? 1 : 0
-  }
-
-  // For delayed losers bracket, calculate effective bracket size
-  // based on which WB round starts feeding losers
-  const effectiveBracketSize = bracketSize / Math.pow(2, startFromWbRound - 1)
-
-  // Pattern: pairs of rounds with same match count, then halves
-  // R1,R2: effectiveBracketSize/4, R3,R4: effectiveBracketSize/8...
-  // Formula: effectiveBracketSize / 2^(ceil(round/2) + 1)
-  return effectiveBracketSize / Math.pow(2, Math.ceil(round / 2) + 1)
 }
 
 const wireLosersBracketWinners = (
@@ -79,21 +61,18 @@ const wireLosersBracketWinners = (
   for (const match of matches) {
     if (match.round >= totalRounds) continue
 
-    const isOddRound = match.round % 2 === 1
-    let nextPos: number
-    let nextSlot: number
+    // The next round is even — it takes a fresh wave of winners bracket losers
+    // — exactly when this round is odd. Those rounds keep the match count, so
+    // the position carries over and slot 2 is left free for the incoming
+    // loser. Advancing into an odd round halves the match count instead.
+    const nextRoundTakesFreshLosers = match.round % 2 === 1
 
-    if (isOddRound) {
-      // From Crossover Round (odd) → Consolidation Round (even)
-      // Next round has same match count, so same position, slot 1
-      nextPos = match.bracketPosition
-      nextSlot = 1
-    } else {
-      // From Consolidation Round (even) → Crossover Round (odd)
-      // Next round has half the matches, so halve position, alternating slots
-      nextPos = Math.floor(match.bracketPosition / 2)
-      nextSlot = (match.bracketPosition % 2) + 1
-    }
+    const nextPos = nextRoundTakesFreshLosers
+      ? match.bracketPosition
+      : Math.floor(match.bracketPosition / 2)
+    const nextSlot = nextRoundTakesFreshLosers
+      ? 1
+      : (match.bracketPosition % 2) + 1
 
     const nextMatchId = idMap.get(`${match.round + 1}-${nextPos}`)
     if (nextMatchId) {
