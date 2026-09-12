@@ -128,12 +128,19 @@ are in opposite halves for large brackets.
 ```
 double-elimination/
 ├── src/              # Source TypeScript files
+│   ├── types.ts                 # The shared match shape and every option type
+│   ├── participants.ts          # Shared validation, seeding ranks, match factory
+│   ├── generateTournament.ts    # Format dispatcher
 │   ├── planBracket.ts           # Option validation and derived bracket sizes
 │   ├── createWinnersBracket.ts  # Winners bracket skeleton and wiring
 │   ├── createLosersBracket.ts   # Losers bracket skeleton and wiring
 │   ├── createGrandFinal.ts      # Grand final and bracket reset
 │   ├── wireLoserRouting.ts      # Winners -> losers bracket routing
 │   ├── resolveByes.ts           # Walkover resolution across the bracket
+│   ├── roundRobinSchedule.ts    # Circle method and snake seeding
+│   ├── generateRoundRobin.ts    # Round robin fixtures, legs and groups
+│   ├── calculateStandings.ts    # League tables and tiebreakers
+│   ├── generateSingleElimination.ts
 │   └── generateDoubleElimination.ts
 ├── tests/            # Test files (helpers.ts holds a bracket simulator)
 ├── scripts/          # Build and package verification scripts
@@ -148,7 +155,10 @@ double-elimination/
 Changes to bracket structure should come with a test in
 `tests/invariants.test.ts`: it plays every bracket size out with random results
 and checks that nothing stalls, that every player but the champion accumulates
-two losses, and that rematches stay rare and late.
+two losses, and that rematches stay rare and late. Round robin scheduling has
+the equivalent in `tests/roundRobin.test.ts`, which checks across field sizes
+that every pair meets exactly once per leg, nobody is scheduled twice in a
+round, and the sides stay balanced.
 
 ## Areas for Contribution
 

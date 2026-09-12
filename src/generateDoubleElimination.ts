@@ -1,6 +1,11 @@
-import { BracketMatch, GeneratorOptions, Participant } from './types.js'
+import {
+  DoubleEliminationOptions,
+  Participant,
+  TournamentMatch,
+} from './types.js'
 import { generateSeedPairs } from './bracketUtils.js'
 import { planBracket } from './planBracket.js'
+import { assertUniqueIds } from './participants.js'
 import { createWinnersBracket } from './createWinnersBracket.js'
 import { createLosersBracket } from './createLosersBracket.js'
 import { createGrandFinal } from './createGrandFinal.js'
@@ -8,14 +13,15 @@ import { wireLoserRouting } from './wireLoserRouting.js'
 import { resolveByes } from './resolveByes.js'
 
 /**
- * Generates every match of a tournament bracket, already wired together.
+ * Generates a double elimination tournament: every match, already wired
+ * together, so a loss only eliminates a player the second time.
  *
  * Matches are returned winners bracket first, then losers bracket, then grand
  * final, each ordered by round and then by position.
  */
 export const generateDoubleElimination = (
-  options: GeneratorOptions
-): BracketMatch[] => {
+  options: DoubleEliminationOptions
+): TournamentMatch[] => {
   const {
     eventId,
     participants,
@@ -73,12 +79,12 @@ export const generateDoubleElimination = (
 
 /** Sends both bracket winners into the grand final. */
 const wireGrandFinal = (
-  winnersMatches: BracketMatch[],
-  losersMatches: BracketMatch[],
-  grandFinalMatch: BracketMatch
+  winnersMatches: TournamentMatch[],
+  losersMatches: TournamentMatch[],
+  grandFinalMatch: TournamentMatch
 ): void => {
-  const lastOf = (matches: BracketMatch[]): BracketMatch | undefined =>
-    matches.reduce<BracketMatch | undefined>(
+  const lastOf = (matches: TournamentMatch[]): TournamentMatch | undefined =>
+    matches.reduce<TournamentMatch | undefined>(
       (latest, match) =>
         !latest || match.round > latest.round ? match : latest,
       undefined
@@ -98,7 +104,7 @@ const wireGrandFinal = (
 }
 
 const placeParticipants = (
-  matches: BracketMatch[],
+  matches: TournamentMatch[],
   participants: Participant[],
   bracketSize: number
 ): void => {
@@ -116,18 +122,4 @@ const placeParticipants = (
     match.registration1Id = seedMap.get(seed1) ?? null
     match.registration2Id = seedMap.get(seed2) ?? null
   })
-}
-
-/** A repeating idFactory would silently cross-wire the bracket. */
-const assertUniqueIds = (matches: BracketMatch[]): void => {
-  const ids = new Set<string>()
-  for (const match of matches) {
-    if (typeof match.id !== 'string' || match.id.length === 0) {
-      throw new Error('idFactory must return non-empty string ids')
-    }
-    if (ids.has(match.id)) {
-      throw new Error(`idFactory returned a duplicate id: "${match.id}"`)
-    }
-    ids.add(match.id)
-  }
 }

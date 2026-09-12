@@ -1,5 +1,10 @@
-import { GeneratorOptions, GrandFinalFormat, Participant } from './types.js'
+import {
+  DoubleEliminationOptions,
+  GrandFinalFormat,
+  Participant,
+} from './types.js'
 import { log2, nextPowerOf2 } from './bracketUtils.js'
+import { rankParticipants } from './participants.js'
 
 export interface BracketPlan {
   eventId: string
@@ -14,24 +19,9 @@ export interface BracketPlan {
 }
 
 /** Validates the options and derives every number the generators need. */
-export const planBracket = (options: GeneratorOptions): BracketPlan => {
-  const {
-    eventId,
-    participants,
-    idFactory,
-    losersStartRoundsBeforeFinal,
-    grandFinal = 'none',
-  } = options
+export const planBracket = (options: DoubleEliminationOptions): BracketPlan => {
+  const { eventId, losersStartRoundsBeforeFinal, grandFinal = 'none' } = options
 
-  if (typeof eventId !== 'string' || eventId.length === 0) {
-    throw new Error('eventId must be a non-empty string')
-  }
-  if (typeof idFactory !== 'function') {
-    throw new Error('idFactory must be a function returning unique ids')
-  }
-  if (!Array.isArray(participants) || participants.length < 2) {
-    throw new Error('At least 2 participants required')
-  }
   if (
     grandFinal !== 'none' &&
     grandFinal !== 'single' &&
@@ -40,7 +30,7 @@ export const planBracket = (options: GeneratorOptions): BracketPlan => {
     throw new Error(`grandFinal must be 'none', 'single' or 'reset'`)
   }
 
-  const ranked = rankParticipants(participants)
+  const ranked = rankParticipants(options)
 
   const bracketSize = nextPowerOf2(ranked.length)
   const winnersRounds = log2(bracketSize)
@@ -92,50 +82,4 @@ export const planBracket = (options: GeneratorOptions): BracketPlan => {
     startFromWbRound,
     grandFinal,
   }
-}
-
-/**
- * Sorts by seed and re-ranks to 1..N.
- *
- * Callers commonly pass sparse or 0-based seeds; ranking makes those behave the
- * same as 1..N instead of silently leaving participants out of the bracket.
- */
-const rankParticipants = (participants: Participant[]): Participant[] => {
-  const seenIds = new Set<string>()
-  const seenSeeds = new Set<number>()
-
-  for (const participant of participants) {
-    if (
-      !participant ||
-      typeof participant.registrationId !== 'string' ||
-      participant.registrationId.length === 0
-    ) {
-      throw new Error('Every participant needs a non-empty registrationId')
-    }
-    if (
-      typeof participant.seed !== 'number' ||
-      !Number.isFinite(participant.seed)
-    ) {
-      throw new Error(
-        `Participant "${participant.registrationId}" has a non-numeric seed`
-      )
-    }
-    if (seenIds.has(participant.registrationId)) {
-      throw new Error(
-        `Duplicate registrationId: "${participant.registrationId}"`
-      )
-    }
-    if (seenSeeds.has(participant.seed)) {
-      throw new Error(`Duplicate seed: ${participant.seed}`)
-    }
-    seenIds.add(participant.registrationId)
-    seenSeeds.add(participant.seed)
-  }
-
-  return [...participants]
-    .sort((a, b) => a.seed - b.seed)
-    .map((participant, index) => ({
-      registrationId: participant.registrationId,
-      seed: index + 1,
-    }))
 }

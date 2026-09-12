@@ -1,4 +1,5 @@
-import { BracketMatch, IdFactory } from './types.js'
+import { IdFactory, TournamentMatch } from './types.js'
+import { createMatch } from './participants.js'
 
 /** Builds the winners bracket skeleton and wires winner advancement. */
 export const createWinnersBracket = (
@@ -6,31 +7,20 @@ export const createWinnersBracket = (
   bracketSize: number,
   rounds: number,
   idFactory: IdFactory
-): BracketMatch[] => {
-  const matches: BracketMatch[] = []
+): TournamentMatch[] => {
+  const matches: TournamentMatch[] = []
   const matchIdMap = new Map<string, string>()
 
   for (let round = 1; round <= rounds; round++) {
     const matchCount = bracketSize / Math.pow(2, round)
 
     for (let pos = 0; pos < matchCount; pos++) {
-      const matchId = idFactory()
-      matchIdMap.set(`${round}-${pos}`, matchId)
-
-      matches.push({
-        id: matchId,
-        eventId,
-        round,
-        matchNumber: pos + 1,
-        registration1Id: null,
-        registration2Id: null,
-        bracketPosition: pos,
-        winnerTo: null,
-        winnerToSlot: null,
-        loserTo: null,
-        loserToSlot: null,
-        bracketType: 'winners',
-      })
+      const match = createMatch(
+        { eventId, round, bracketPosition: pos, bracketType: 'winners' },
+        idFactory
+      )
+      matchIdMap.set(`${round}-${pos}`, match.id)
+      matches.push(match)
     }
   }
 

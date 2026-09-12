@@ -1,21 +1,23 @@
 import { useMemo } from 'react'
-import type { BracketMatch } from 'double-elimination'
+import type { TournamentMatch } from 'double-elimination'
 
 interface Props {
-  winnersMatches: BracketMatch[]
-  losersMatches: BracketMatch[]
+  winnersMatches: TournamentMatch[]
+  losersMatches: TournamentMatch[]
+  grandFinalMatches?: TournamentMatch[]
   participantCount: number
 }
 
 const BracketVisualization = ({
   winnersMatches,
   losersMatches,
+  grandFinalMatches = [],
   participantCount,
 }: Props) => {
   const { winnersByRound, losersByRound, maxWinnersRound, maxLosersRound } =
     useMemo(() => {
-      const winnersByRound: Record<number, BracketMatch[]> = {}
-      const losersByRound: Record<number, BracketMatch[]> = {}
+      const winnersByRound: Record<number, TournamentMatch[]> = {}
+      const losersByRound: Record<number, TournamentMatch[]> = {}
 
       winnersMatches.forEach((m) => {
         if (!winnersByRound[m.round]) winnersByRound[m.round] = []
@@ -162,6 +164,32 @@ const BracketVisualization = ({
                 No losers bracket in single elimination
               </div>
             )}
+
+            {grandFinalMatches.length > 0 && (
+              <div
+                className='border-t border-border'
+                style={{ padding: '1rem', marginTop: '0.5rem' }}
+              >
+                <div
+                  className='flex items-center justify-between'
+                  style={{ marginBottom: '0.5rem' }}
+                >
+                  <span className='text-sm font-medium flex items-center' style={{ gap: '0.5rem' }}>
+                    <span className='w-2.5 h-2.5 rounded-full bg-secondary' />
+                    Grand Final
+                  </span>
+                  <span className='text-sm text-muted'>
+                    {grandFinalMatches.length}{' '}
+                    {grandFinalMatches.length === 1 ? 'match' : 'matches'}
+                  </span>
+                </div>
+                <p className='text-xs text-muted'>
+                  {grandFinalMatches.length > 1
+                    ? 'Match 2 is the bracket reset, played only if the losers bracket winner takes match 1.'
+                    : 'Winners bracket winner vs losers bracket winner.'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -180,7 +208,7 @@ const BracketVisualization = ({
     return `#${num}`
   }
 
-  const renderMatch = (match: BracketMatch, yOffset: number) => (
+  const renderMatch = (match: TournamentMatch, yOffset: number) => (
     <g key={match.id}>
       <rect
         x={0}
@@ -224,7 +252,7 @@ const BracketVisualization = ({
   )
 
   const renderRound = (
-    matches: BracketMatch[],
+    matches: TournamentMatch[],
     roundIndex: number,
     baseY: number
   ) => {
@@ -319,6 +347,49 @@ const BracketVisualization = ({
           )}
         </div>
       </div>
+
+      {grandFinalMatches.length > 0 && (
+        <div className='bg-card border border-border rounded-xl overflow-hidden md:col-span-2'>
+          <div className='border-b border-border' style={{ padding: '1rem' }}>
+            <h4
+              className='text-base font-semibold flex items-center'
+              style={{ gap: '0.5rem' }}
+            >
+              <span className='w-2.5 h-2.5 rounded-full bg-secondary' />
+              Grand Final
+            </h4>
+          </div>
+          <div
+            style={{
+              padding: '1rem',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              alignItems: 'center',
+            }}
+          >
+            {grandFinalMatches
+              .slice()
+              .sort((a, b) => a.round - b.round)
+              .map((match) => (
+                <div
+                  key={match.id}
+                  className='bg-background/50 border border-border rounded-lg'
+                  style={{ padding: '0.75rem 1rem', minWidth: '12rem' }}
+                >
+                  <div className='text-sm font-medium'>
+                    {match.round === 1 ? 'Grand Final' : 'Bracket Reset'}
+                  </div>
+                  <div className='text-xs text-muted' style={{ marginTop: '0.25rem' }}>
+                    {match.round === 1
+                      ? 'Winners bracket winner vs losers bracket winner'
+                      : 'Played only if the losers bracket winner takes match 1'}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

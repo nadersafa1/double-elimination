@@ -1,4 +1,5 @@
-import { BracketMatch, GrandFinalFormat, IdFactory } from './types.js'
+import { GrandFinalFormat, IdFactory, TournamentMatch } from './types.js'
+import { createMatch } from './participants.js'
 
 /**
  * Creates the grand final (and, for `'reset'`, the bracket reset match).
@@ -13,27 +14,19 @@ export const createGrandFinal = (
   eventId: string,
   format: GrandFinalFormat,
   idFactory: IdFactory
-): BracketMatch[] => {
+): TournamentMatch[] => {
   if (format === 'none') return []
 
   const rounds = format === 'reset' ? 2 : 1
-  const matches: BracketMatch[] = []
+  const matches: TournamentMatch[] = []
 
   for (let round = 1; round <= rounds; round++) {
-    matches.push({
-      id: idFactory(),
-      eventId,
-      round,
-      matchNumber: 1,
-      registration1Id: null,
-      registration2Id: null,
-      bracketPosition: 0,
-      winnerTo: null,
-      winnerToSlot: null,
-      loserTo: null,
-      loserToSlot: null,
-      bracketType: 'grandFinal',
-    })
+    matches.push(
+      createMatch(
+        { eventId, round, bracketPosition: 0, bracketType: 'grandFinal' },
+        idFactory
+      )
+    )
   }
 
   if (matches.length === 2) {

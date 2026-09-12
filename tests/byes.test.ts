@@ -75,6 +75,24 @@ describe('bye handling', () => {
     }
   })
 
+  it('marks a walkover whose entrant is not yet known', () => {
+    // 3 players: seed 1 has a bye, so only one player loses a semifinal and
+    // the third place match can never be contested.
+    const matches = generate(3)
+    const fed = fedSlots(matches)
+
+    const willFill = (match: (typeof matches)[number], slot: 1 | 2) =>
+      (slot === 1 ? match.registration1Id : match.registration2Id) !== null ||
+      fed.has(`${match.id}#${slot}`)
+
+    const thirdPlace = matches.find((m) => m.bracketType === 'losers')!
+
+    // Exactly one side can arrive, so consumers can tell this apart from a
+    // match that is merely waiting on an earlier round.
+    expect(willFill(thirdPlace, 1) !== willFill(thirdPlace, 2)).toBe(true)
+    expect(thirdPlace.winnerTo).toBeNull()
+  })
+
   it.each([3, 5, 6, 7, 9, 11, 23, 33])(
     'completes the losers bracket with %i participants',
     (count) => {

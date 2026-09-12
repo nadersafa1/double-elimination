@@ -1,4 +1,4 @@
-import { BracketMatch } from './types.js'
+import { TournamentMatch } from './types.js'
 
 /**
  * Resolves every walkover the bracket structure already implies.
@@ -17,7 +17,7 @@ import { BracketMatch } from './types.js'
  * - A match no one can reach is left in place with empty slots and no routing,
  *   so bracket positions stay stable for rendering.
  */
-export const resolveByes = (matches: BracketMatch[]): void => {
+export const resolveByes = (matches: TournamentMatch[]): void => {
   const byId = new Map(matches.map((match) => [match.id, match]))
   const order = topologicalOrder(matches, byId)
 
@@ -115,7 +115,7 @@ type MatchShape =
   | 'unused'
 
 const classify = (
-  match: BracketMatch,
+  match: TournamentMatch,
   slot1: SlotState,
   slot2: SlotState
 ): MatchShape => {
@@ -144,7 +144,7 @@ const NO_LINK: Link = { id: null, slot: null }
 const followBypasses = (
   targetId: string | null,
   targetSlot: number | null,
-  byId: Map<string, BracketMatch>,
+  byId: Map<string, TournamentMatch>,
   shapes: Map<string, MatchShape>
 ): Link => {
   let id = targetId
@@ -165,13 +165,13 @@ const followBypasses = (
 
 /** Orders matches so that every match comes after the matches that feed it. */
 const topologicalOrder = (
-  matches: BracketMatch[],
-  byId: Map<string, BracketMatch>
-): BracketMatch[] => {
+  matches: TournamentMatch[],
+  byId: Map<string, TournamentMatch>
+): TournamentMatch[] => {
   const incoming = new Map<string, number>()
   for (const match of matches) incoming.set(match.id, 0)
 
-  const targetsOf = (match: BracketMatch): string[] => {
+  const targetsOf = (match: TournamentMatch): string[] => {
     const targets: string[] = []
     if (match.winnerTo && byId.has(match.winnerTo)) targets.push(match.winnerTo)
     if (match.loserTo && byId.has(match.loserTo)) targets.push(match.loserTo)
@@ -185,7 +185,7 @@ const topologicalOrder = (
   }
 
   const queue = matches.filter((match) => incoming.get(match.id) === 0)
-  const order: BracketMatch[] = []
+  const order: TournamentMatch[] = []
 
   for (let i = 0; i < queue.length; i++) {
     const match = queue[i]

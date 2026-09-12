@@ -1,4 +1,4 @@
-import { BracketMatch } from './types.js'
+import { TournamentMatch } from './types.js'
 
 /**
  * Reorders a round of winners bracket losers before they are dropped into the
@@ -36,8 +36,8 @@ const CROSSOVER_ORDERINGS: PositionOrdering[] = [
 
 /** Points every winners bracket match at the losers bracket match it feeds. */
 export const wireLoserRouting = (
-  winnersMatches: BracketMatch[],
-  losersMatches: BracketMatch[],
+  winnersMatches: TournamentMatch[],
+  losersMatches: TournamentMatch[],
   winnersRounds: number,
   startFromWbRound: number,
   winnersFinalFeedsLosers: boolean
