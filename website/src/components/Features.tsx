@@ -90,11 +90,12 @@ const Features = () => {
             className="text-2xl sm:text-4xl md:text-5xl font-bold"
             style={{ marginBottom: '1rem' }}
           >
-            Everything You Need for{' '}
-            <span className="text-primary">Tournament Brackets</span>
+            Everything You Need to{' '}
+            <span className="text-primary">Run a Tournament</span>
           </h2>
           <p className="text-base sm:text-xl text-muted max-w-2xl mx-auto">
-            A complete solution for generating tournament structures programmatically
+            Brackets, leagues and standings — generated from a list of
+            participants, in one dependency-free package
           </p>
         </motion.div>
 

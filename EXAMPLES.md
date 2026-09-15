@@ -273,10 +273,19 @@ const table2 = calculateStandings({
 
 ### Qualifiers from a group stage
 
-```typescript
-const table = calculateStandings({ matches: groups, results })
+Participants nothing separates share a rank, so `rank <= 2` can return three
+rows from one group. When you need a strict cut, end the tiebreakers with
+`seed`: seeds are unique, so it always decides.
 
-// Top two from every group
+```typescript
+const table = calculateStandings({
+  matches: groups,
+  results,
+  participants, // required by the 'seed' tiebreaker
+  tiebreakers: ['headToHead', 'scoreDifference', 'scoreFor', 'wins', 'seed'],
+})
+
+// Exactly the top two from every group
 const qualifiers = table.filter((row) => row.rank <= 2)
 
 // Best third-placed teams across groups
@@ -284,6 +293,17 @@ const thirds = table
   .filter((row) => row.rank === 3)
   .sort((a, b) => b.points - a.points || b.scoreDifference - a.scoreDifference)
   .slice(0, 4)
+```
+
+Without `seed`, inspect the ties instead of cutting through them:
+
+```typescript
+const tied = table.filter(
+  (row) =>
+    table.filter(
+      (other) => other.group === row.group && other.rank === row.rank
+    ).length > 1
+)
 ```
 
 ## Group Stage into a Playoff Bracket
@@ -301,7 +321,13 @@ const groupStage = generateRoundRobin({
 
 // ...play the group stage, collecting results...
 
-const table = calculateStandings({ matches: groupStage, results })
+const table = calculateStandings({
+  matches: groupStage,
+  results,
+  participants,
+  // 'seed' last, so two teams per group qualify and never three
+  tiebreakers: ['headToHead', 'scoreDifference', 'scoreFor', 'wins', 'seed'],
+})
 
 // Group winners are seeded above runners-up, then by points
 const qualifiers = table

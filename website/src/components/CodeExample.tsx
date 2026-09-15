@@ -49,6 +49,22 @@ const fixtures = generateRoundRobin({
 // Everyone plays everyone: seeded fixtures, balanced
 // sides, and a rest round when the field is odd.`
 
+const anyFormatCode = `import { generateTournament } from 'double-elimination'
+
+// When the format is data — a column, a form value — rather than
+// something known when the code is written.
+const matches = generateTournament({
+  format: event.format, // 'single-elimination'
+                        // 'double-elimination'
+                        // 'round-robin'
+  eventId: event.id,
+  participants: event.entrants,
+  idFactory: () => crypto.randomUUID(),
+})
+
+// Every format returns the same match shape, so one renderer
+// and one database table serve all three.`
+
 const standingsCode = `import { calculateStandings } from 'double-elimination'
 
 const table = calculateStandings({
@@ -147,6 +163,9 @@ const CodeExample = () => {
                   <TabsTrigger value="standings" className="text-xs sm:text-sm" style={{ padding: '0.375rem 0.75rem' }}>
                     Standings
                   </TabsTrigger>
+                  <TabsTrigger value="anyFormat" className="text-xs sm:text-sm" style={{ padding: '0.375rem 0.75rem' }}>
+                    Any Format
+                  </TabsTrigger>
                 </TabsList>
               </div>
               <TabsContent value="double" style={{ margin: 0 }}>
@@ -160,6 +179,9 @@ const CodeExample = () => {
               </TabsContent>
               <TabsContent value="standings" style={{ margin: 0 }}>
                 <CodeBlock code={standingsCode} />
+              </TabsContent>
+              <TabsContent value="anyFormat" style={{ margin: 0 }}>
+                <CodeBlock code={anyFormatCode} />
               </TabsContent>
             </Tabs>
           </div>

@@ -283,6 +283,33 @@ describe('group standings', () => {
     )
   })
 
+  it('gives a strict cut per group when seed is the last tiebreaker', () => {
+    const matches = generate(12, { groupCount: 3 })
+    // Every match drawn: nothing but seed can separate anyone.
+    const standings = calculateStandings({
+      matches,
+      participants: createParticipants(12),
+      results: matches.map((match) => ({ matchId: match.id, winnerId: null })),
+      tiebreakers: [
+        'headToHead',
+        'scoreDifference',
+        'scoreFor',
+        'wins',
+        'seed',
+      ],
+    })
+
+    for (const group of [0, 1, 2]) {
+      const ranks = standings
+        .filter((row) => row.group === group)
+        .map((row) => row.rank)
+      // Distinct positions, so `rank <= 2` really is two qualifiers.
+      expect(ranks).toEqual([1, 2, 3, 4])
+    }
+
+    expect(standings.filter((row) => row.rank <= 2)).toHaveLength(6)
+  })
+
   it('keeps head-to-head inside the group', () => {
     const matches = generate(8, { groupCount: 2 })
     const standings = calculateStandings({ matches, results: [] })

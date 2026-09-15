@@ -519,10 +519,21 @@ there is only one pool.
 ### Standings and tiebreakers
 
 ```typescript
-const table = calculateStandings({ matches: groupStage, results })
+const table = calculateStandings({
+  matches: groupStage,
+  results,
+  participants, // required by the 'seed' tiebreaker below
+  // Ranks are shared when nothing separates two participants, so end with
+  // 'seed' whenever you need a strict cut — seeds are unique, so it always
+  // decides, and every rank becomes a distinct position.
+  tiebreakers: ['headToHead', 'scoreDifference', 'scoreFor', 'wins', 'seed'],
+})
 
 const qualifiers = table.filter((row) => row.rank <= 2)
 ```
+
+Leave `seed` out and a three-way tie really does give you three rows at rank 1 —
+which is the honest answer, and the one to show a human before a playoff draw.
 
 Rows are ranked on points first, then by each tiebreaker in turn — and each
 tiebreaker only applies to the rows the previous one left level, exactly as a

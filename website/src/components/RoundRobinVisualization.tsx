@@ -13,10 +13,18 @@ interface Props {
   showSampleResults: boolean
 }
 
-/** Deterministic pseudo-random scoreline, so the demo is stable across renders. */
+/**
+ * Deterministic pseudo-random scoreline, so the demo is stable across renders.
+ *
+ * Mixes the bits rather than taking a single step of a linear generator, which
+ * on consecutive inputs would walk a short cycle and never produce a draw.
+ */
 const sampleScore = (seed: number) => {
-  const next = (seed * 1103515245 + 12345) & 0x7fffffff
-  return next % 4
+  let mixed = Math.imul(seed + 1, 2654435761)
+  mixed ^= mixed >>> 15
+  mixed = Math.imul(mixed, 2246822519)
+  mixed ^= mixed >>> 13
+  return Math.abs(mixed) % 4
 }
 
 const RoundRobinVisualization = ({
@@ -33,8 +41,8 @@ const RoundRobinVisualization = ({
     if (!showSampleResults) return []
     return matches.map((match, index) => ({
       matchId: match.id,
-      score1: sampleScore(index + 1),
-      score2: sampleScore(index + 7),
+      score1: sampleScore(index * 2),
+      score2: sampleScore(index * 2 + 1),
     }))
   }, [matches, showSampleResults])
 
