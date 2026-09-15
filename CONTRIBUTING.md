@@ -35,7 +35,9 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 2. **Make your changes** following the coding standards below
 3. **Add tests** for any new functionality
 4. **Update documentation** if needed
-5. **Ensure all tests pass** (`npm test`)
+5. **Ensure all tests pass** (`npm test`), the package still typechecks
+   (`npm run typecheck`), and the built entry points load
+   (`npm run build && npm run test:package`)
 6. **Commit your changes** with clear commit messages
 7. **Push to your fork** and submit a pull request
 
@@ -126,12 +128,37 @@ are in opposite halves for large brackets.
 ```
 double-elimination/
 ├── src/              # Source TypeScript files
-├── dist/             # Compiled JavaScript (generated)
-├── tests/            # Test files
+│   ├── types.ts                 # The shared match shape and every option type
+│   ├── participants.ts          # Shared validation, seeding ranks, match factory
+│   ├── generateTournament.ts    # Format dispatcher
+│   ├── planBracket.ts           # Option validation and derived bracket sizes
+│   ├── createWinnersBracket.ts  # Winners bracket skeleton and wiring
+│   ├── createLosersBracket.ts   # Losers bracket skeleton and wiring
+│   ├── createGrandFinal.ts      # Grand final and bracket reset
+│   ├── wireLoserRouting.ts      # Winners -> losers bracket routing
+│   ├── resolveByes.ts           # Walkover resolution across the bracket
+│   ├── roundRobinSchedule.ts    # Circle method and snake seeding
+│   ├── generateRoundRobin.ts    # Round robin fixtures, legs and groups
+│   ├── calculateStandings.ts    # League tables and tiebreakers
+│   ├── generateSingleElimination.ts
+│   └── generateDoubleElimination.ts
+├── tests/            # Test files (helpers.ts holds a bracket simulator)
+├── scripts/          # Build and package verification scripts
+├── website/          # Interactive demo site
+├── dist/             # Compiled JavaScript, ESM and CJS (generated)
 ├── package.json      # Package configuration
-├── tsconfig.json     # TypeScript configuration
+├── tsconfig.json     # TypeScript configuration (ESM build)
+├── tsconfig.cjs.json # CommonJS build overrides
 └── README.md         # Documentation
 ```
+
+Changes to bracket structure should come with a test in
+`tests/invariants.test.ts`: it plays every bracket size out with random results
+and checks that nothing stalls, that every player but the champion accumulates
+two losses, and that rematches stay rare and late. Round robin scheduling has
+the equivalent in `tests/roundRobin.test.ts`, which checks across field sizes
+that every pair meets exactly once per leg, nobody is scheduled twice in a
+round, and the sides stay balanced.
 
 ## Areas for Contribution
 

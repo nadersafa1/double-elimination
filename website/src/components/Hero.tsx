@@ -24,7 +24,7 @@ const Hero = () => {
           style={{ gap: '0.5rem', marginBottom: '2rem' }}
         >
           <Badge variant="outline" style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }} className="border-primary/50 text-primary">
-            v1.2.2
+            v2.0.0
           </Badge>
           <Badge variant="outline" style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }} className="border-success/50 text-success">
             Zero Dependencies
@@ -42,10 +42,10 @@ const Hero = () => {
           style={{ marginBottom: '1.5rem' }}
         >
           <span className="bg-gradient-to-r from-primary via-secondary to-tertiary bg-clip-text text-transparent">
-            Tournament Brackets
+            Every Tournament
           </span>
           <br />
-          <span className="text-foreground">Made Simple</span>
+          <span className="text-foreground">From One Package</span>
         </motion.h1>
 
         <motion.p
@@ -55,8 +55,9 @@ const Hero = () => {
           className="text-base sm:text-xl md:text-2xl text-muted max-w-2xl px-2"
           style={{ marginBottom: '2.5rem' }}
         >
-          Generate single & double elimination brackets with automatic seeding, 
-          bye handling, and full TypeScript support.
+          Double elimination, single elimination and round robin — with standard
+          seeding, byes handled end to end, grand finals, group stages and
+          standings.
         </motion.p>
 
         <motion.div

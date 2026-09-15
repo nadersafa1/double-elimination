@@ -1,71 +1,52 @@
-/** Compute smallest power of 2 >= n */
+/**
+ * Smallest power of two >= n.
+ *
+ * Computed with integer doubling rather than `Math.pow(2, Math.ceil(Math.log2(n)))`,
+ * which can round the wrong way for large inputs (e.g. `Math.log2(2 ** 29)` is
+ * not guaranteed to be exactly 29 on every engine).
+ */
 export const nextPowerOf2 = (n: number): number => {
-  return Math.pow(2, Math.ceil(Math.log2(n)))
+  let size = 1
+  while (size < n) size *= 2
+  return size
 }
 
-/** Generate seeding pairs for first round: 1v8, 4v5, 2v7, 3v6 pattern */
-export const generateSeedingPairs = (
-  bracketSize: number
-): [number, number][] => {
-  const pairs: [number, number][] = []
-  const half = bracketSize / 2
-
-  const buildPairs = (seeds: number[]): void => {
-    if (seeds.length === 2) {
-      pairs.push([seeds[0], seeds[1]])
-      return
-    }
-    const top: number[] = []
-    const bottom: number[] = []
-    for (let i = 0; i < seeds.length / 2; i++) {
-      top.push(seeds[i])
-      bottom.push(seeds[seeds.length - 1 - i])
-    }
-    buildPairs(top.map((t, i) => [t, bottom[i]]).flat())
-    buildPairs(bottom.map((b, i) => [top[top.length - 1 - i], b]).flat())
+/** log2 of an exact power of two, without floating point. */
+export const log2 = (powerOfTwo: number): number => {
+  let exponent = 0
+  let value = powerOfTwo
+  while (value > 1) {
+    value /= 2
+    exponent++
   }
-
-  // Start with seeds 1..bracketSize
-  const initialSeeds = Array.from({ length: bracketSize }, (_, i) => i + 1)
-  buildPairs(
-    initialSeeds.slice(0, half).concat(initialSeeds.slice(half).reverse())
-  )
-
-  return pairs.slice(0, half)
+  return exponent
 }
 
-/** Standard seeding: 1vN, 2v(N-1), etc. reordered for bracket structure */
-export const getStandardSeedingOrder = (
-  bracketSize: number
-): [number, number][] => {
-  const matchCount = bracketSize / 2
-  const pairs: [number, number][] = []
+/**
+ * Seed pairings for round 1, in bracket order.
+ *
+ * Builds the standard "fold" sequence — `[1, 2] -> [1, 4, 2, 3] -> [1, 8, 4, 5,
+ * 2, 7, 3, 6] -> ...` — so that the top two seeds can only meet in the final,
+ * the top four only in the semifinals, and so on.
+ */
+export const generateSeedPairs = (bracketSize: number): [number, number][] => {
+  let positions = [1, 2]
 
-  const fillBracket = (pos: number, round: number): number => {
-    if (round === 1) return pos
-    const prevPos = pos * 2
-    return fillBracket(prevPos, round - 1)
-  }
+  while (positions.length < bracketSize) {
+    const sum = positions.length * 2 + 1
+    const next: number[] = new Array(positions.length * 2)
 
-  const rounds = Math.log2(bracketSize)
-  for (let m = 0; m < matchCount; m++) {
-    const seed1 = m + 1
-    const seed2 = bracketSize - m
-    pairs.push([seed1, seed2])
-  }
-
-  // Reorder for proper bracket placement
-  const ordered: [number, number][] = []
-  const placeMatch = (start: number, end: number, depth: number): void => {
-    if (depth === 0) {
-      ordered.push(pairs[start])
-      return
+    for (let i = 0; i < positions.length; i++) {
+      next[i * 2] = positions[i]
+      next[i * 2 + 1] = sum - positions[i]
     }
-    const mid = Math.floor((start + end) / 2)
-    placeMatch(start, mid, depth - 1)
-    placeMatch(mid + 1, end, depth - 1)
+
+    positions = next
   }
 
-  placeMatch(0, matchCount - 1, rounds - 1)
-  return ordered.length > 0 ? ordered : pairs
+  const pairs: [number, number][] = new Array(bracketSize / 2)
+  for (let i = 0; i < positions.length; i += 2) {
+    pairs[i / 2] = [positions[i], positions[i + 1]]
+  }
+  return pairs
 }
