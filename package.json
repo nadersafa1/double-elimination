@@ -1,18 +1,23 @@
 {
   "name": "double-elimination",
-  "version": "1.2.2",
-  "description": "Generate double elimination tournament brackets with automatic seeding and bye handling",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "version": "2.0.0",
+  "description": "Tournament generator for double elimination, single elimination and round robin — seeding, byes, grand finals, group stages and standings",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "npm run build",
+    "build": "node scripts/build.mjs",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prepublishOnly": "npm run build && npm test && npm run test:package",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:package": "node scripts/verify-package.mjs",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "demo": "tsx demo.ts",
     "website:dev": "cd website && npm run dev",
     "website:build": "cd website && npm run build",
     "website:install": "cd website && npm install"
@@ -20,21 +25,32 @@
   "keywords": [
     "tournament",
     "bracket",
-    "double-elimination",
-    "esports",
-    "competition",
-    "seeding",
-    "sports",
-    "tournament-bracket",
     "bracket-generator",
-    "tournament-management",
-    "esports-tournament",
-    "competition-bracket",
+    "tournament-bracket",
+    "tournament-generator",
+    "double-elimination",
     "single-elimination",
+    "round-robin",
+    "group-stage",
+    "league",
+    "fixtures",
+    "schedule",
+    "match-scheduling",
+    "standings",
+    "league-table",
+    "tiebreakers",
+    "seeding",
     "tournament-seeding",
     "bracket-algorithm",
-    "tournament-software",
-    "match-scheduling"
+    "grand-final",
+    "bracket-reset",
+    "esports",
+    "esports-tournament",
+    "sports",
+    "competition",
+    "competition-bracket",
+    "tournament-management",
+    "tournament-software"
   ],
   "author": "Nader Safa",
   "license": "MIT",
@@ -54,5 +70,20 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false
 }

@@ -1,16 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { generateDoubleElimination, Participant } from '../src'
-
-const createIdFactory = () => {
-  let counter = 0
-  return () => `match-${++counter}`
-}
-
-const createParticipants = (count: number): Participant[] =>
-  Array.from({ length: count }, (_, i) => ({
-    registrationId: `player-${i + 1}`,
-    seed: i + 1,
-  }))
+import { generateDoubleElimination } from '../src'
+import { createIdFactory, createParticipants } from './helpers'
 
 describe('generateDoubleElimination', () => {
   it('throws if fewer than 2 participants', () => {
@@ -388,7 +378,7 @@ describe('delayed losers bracket', () => {
         idFactory: createIdFactory(),
         losersStartRoundsBeforeFinal: 1,
       })
-    ).toThrow('losersStartRoundsBeforeFinal=1 requires at least 4 participants')
+    ).toThrow('losersStartRoundsBeforeFinal=1 requires at least 3 participants')
   })
 
   it('throws error if losersStartRoundsBeforeFinal >= winnersRounds', () => {
@@ -401,7 +391,6 @@ describe('delayed losers bracket', () => {
       })
     ).toThrow('losersStartRoundsBeforeFinal must be less than winnersRounds')
   })
-
 })
 
 describe('rematch prevention', () => {
@@ -460,7 +449,7 @@ describe('rematch prevention', () => {
     expect(wbR2[midPos]?.loserTo).toBe(lbR2[totalMatches - 1 - midPos]?.id)
   })
 
-  it('routes WB Round 3+ losers with same positions (not mirrored) for 32 participants', () => {
+  it('rotates the ordering of WB Round 3+ losers for 32 participants', () => {
     const matches = generateDoubleElimination({
       eventId: 'event-1',
       participants: createParticipants(32),
@@ -477,14 +466,13 @@ describe('rematch prevention', () => {
       .filter((m) => m.round === 4)
       .sort((a, b) => a.bracketPosition - b.bracketPosition)
 
-    // WB R3 has 4 matches (positions 0-3)
-    // Should use same positions: WB R3 pos 0 → LB R4 pos 0, etc.
-    for (let i = 0; i < wbR3.length; i++) {
-      expect(wbR3[i]?.loserTo).toBe(lbR4[i]?.id)
-      expect(wbR3[i]?.loserToSlot).toBe(2)
-    }
+    // Third wave of losers: reversed and shifted by half (4 matches),
+    // so 0 -> 1, 1 -> 0, 2 -> 3, 3 -> 2.
+    expect(
+      wbR3.map((m) => lbR4.findIndex((lb) => lb.id === m.loserTo))
+    ).toEqual([1, 0, 3, 2])
+    for (const match of wbR3) expect(match.loserToSlot).toBe(2)
 
-    // Verify Round 4 as well
     const wbR4 = winners
       .filter((m) => m.round === 4)
       .sort((a, b) => a.bracketPosition - b.bracketPosition)
@@ -492,12 +480,11 @@ describe('rematch prevention', () => {
       .filter((m) => m.round === 6)
       .sort((a, b) => a.bracketPosition - b.bracketPosition)
 
-    // WB R4 has 2 matches (positions 0-1)
-    // Should use same positions
-    for (let i = 0; i < wbR4.length; i++) {
-      expect(wbR4[i]?.loserTo).toBe(lbR6[i]?.id)
-      expect(wbR4[i]?.loserToSlot).toBe(2)
-    }
+    // Fourth wave: shifted by half (2 matches), so 0 -> 1 and 1 -> 0.
+    expect(
+      wbR4.map((m) => lbR6.findIndex((lb) => lb.id === m.loserTo))
+    ).toEqual([1, 0])
+    for (const match of wbR4) expect(match.loserToSlot).toBe(2)
   })
 
   it('prevents early rematches by ensuring Round 2 reversal separates bracket halves', () => {

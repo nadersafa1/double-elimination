@@ -3,21 +3,21 @@ import { motion } from 'framer-motion'
 const features = [
   {
     icon: '🏆',
-    title: 'SE + DE Support',
+    title: 'Three Formats',
     description:
-      'Full single elimination, double elimination, or anything in between with the flexible losersStartRoundsBeforeFinal option.',
+      'Double elimination, single elimination and round robin — all returning the same match shape, so one renderer serves every format.',
   },
   {
-    icon: '⚡',
-    title: 'Zero Dependencies',
+    icon: '🥇',
+    title: 'Grand Final & Reset',
     description:
-      'Lightweight and fast. No external runtime dependencies means smaller bundle sizes and fewer security concerns.',
+      'Opt into a real double elimination finish: the winners final loser drops to the losers final, and a bracket reset when the comeback lands.',
   },
   {
-    icon: '🔷',
-    title: 'TypeScript First',
+    icon: '📊',
+    title: 'Standings & Tiebreakers',
     description:
-      'Built with TypeScript from the ground up. Full type definitions included for excellent IDE support and type safety.',
+      'League tables from your results, with a configurable points system and head-to-head, score difference, score for, wins and seed tiebreakers.',
   },
   {
     icon: '🎯',
@@ -27,15 +27,33 @@ const features = [
   },
   {
     icon: '✨',
-    title: 'Automatic Byes',
+    title: 'Byes Done Right',
     description:
-      'Handles any participant count, not just powers of 2. Byes are automatically calculated and pre-resolved.',
+      'Any participant count, not just powers of 2. Walkovers are pre-resolved through the whole bracket, so nothing ever stalls on a missing opponent.',
   },
   {
     icon: '🔄',
     title: 'Rematch Prevention',
     description:
-      'Intelligent loser routing prevents early rematches in the losers bracket through strategic cross-bracket matchups.',
+      'Rotating loser routing keeps players away from opponents they already beat, pushing the first possible rematch deep into the losers bracket.',
+  },
+  {
+    icon: '🗓️',
+    title: 'Leagues & Groups',
+    description:
+      'Circle-method fixtures with balanced sides, home-and-away legs, and snake-seeded group stages that feed straight into a playoff bracket.',
+  },
+  {
+    icon: '⚡',
+    title: 'Zero Dependencies',
+    description:
+      'Lightweight and fast. ESM and CommonJS builds, no runtime dependencies, smaller bundles and fewer security concerns.',
+  },
+  {
+    icon: '🔷',
+    title: 'TypeScript First',
+    description:
+      'Built with TypeScript from the ground up. Full type definitions included for excellent IDE support and type safety.',
   },
 ]
 
@@ -72,11 +90,12 @@ const Features = () => {
             className="text-2xl sm:text-4xl md:text-5xl font-bold"
             style={{ marginBottom: '1rem' }}
           >
-            Everything You Need for{' '}
-            <span className="text-primary">Tournament Brackets</span>
+            Everything You Need to{' '}
+            <span className="text-primary">Run a Tournament</span>
           </h2>
           <p className="text-base sm:text-xl text-muted max-w-2xl mx-auto">
-            A complete solution for generating tournament structures programmatically
+            Brackets, leagues and standings — generated from a list of
+            participants, in one dependency-free package
           </p>
         </motion.div>
 

@@ -1,77 +1,39 @@
-import { BracketMatch, GeneratorOptions, Participant } from './types'
-import { nextPowerOf2 } from './bracketUtils'
-import { createWinnersBracket } from './createWinnersBracket'
-import { createLosersBracket } from './createLosersBracket'
-import { wireLoserRouting } from './wireLoserRouting'
-import { processByes } from './processByes'
+import {
+  DoubleEliminationOptions,
+  Participant,
+  TournamentMatch,
+} from './types.js'
+import { generateSeedPairs } from './bracketUtils.js'
+import { planBracket } from './planBracket.js'
+import { assertUniqueIds } from './participants.js'
+import { createWinnersBracket } from './createWinnersBracket.js'
+import { createLosersBracket } from './createLosersBracket.js'
+import { createGrandFinal } from './createGrandFinal.js'
+import { wireLoserRouting } from './wireLoserRouting.js'
+import { resolveByes } from './resolveByes.js'
 
+/**
+ * Generates a double elimination tournament: every match, already wired
+ * together, so a loss only eliminates a player the second time.
+ *
+ * Matches are returned winners bracket first, then losers bracket, then grand
+ * final, each ordered by round and then by position.
+ */
 export const generateDoubleElimination = (
-  options: GeneratorOptions
-): BracketMatch[] => {
+  options: DoubleEliminationOptions
+): TournamentMatch[] => {
   const {
     eventId,
     participants,
-    idFactory,
-    losersStartRoundsBeforeFinal,
-  } = options
+    bracketSize,
+    winnersRounds,
+    losersRounds,
+    startFromWbRound,
+    grandFinal,
+  } = planBracket(options)
 
-  if (participants.length < 2) {
-    throw new Error('At least 2 participants required')
-  }
+  const { idFactory } = options
 
-  const bracketSize = nextPowerOf2(participants.length)
-  const winnersRounds = Math.log2(bracketSize)
-
-  // Validate losersStartRoundsBeforeFinal
-  if (losersStartRoundsBeforeFinal !== undefined) {
-    if (losersStartRoundsBeforeFinal < 0) {
-      throw new Error(
-        'losersStartRoundsBeforeFinal must be at least 0 (0 = pure single elimination)'
-      )
-    }
-    // Special case: losersStartRoundsBeforeFinal=1 requires at least 4 participants (semifinals)
-    // Check this before the >= winnersRounds check
-    if (losersStartRoundsBeforeFinal === 1 && winnersRounds < 2) {
-      throw new Error(
-        'losersStartRoundsBeforeFinal=1 requires at least 4 participants (semifinals needed)'
-      )
-    }
-    if (losersStartRoundsBeforeFinal >= winnersRounds) {
-      throw new Error(
-        `losersStartRoundsBeforeFinal must be less than winnersRounds (${winnersRounds})`
-      )
-    }
-  }
-
-  // Calculate which WB round starts feeding into LB
-  // Default: round 1 (full double elimination)
-  const startFromWbRound = losersStartRoundsBeforeFinal !== undefined
-    ? winnersRounds - losersStartRoundsBeforeFinal
-    : 1
-
-  // Number of WB rounds that feed losers (excludes finals)
-  const feederRounds = losersStartRoundsBeforeFinal !== undefined
-    ? losersStartRoundsBeforeFinal
-    : winnersRounds - 1
-
-  // Calculate losers bracket rounds
-  // For losersStartRoundsBeforeFinal=0: no losers bracket
-  // For losersStartRoundsBeforeFinal=1: only 1 match (3rd place)
-  // For losersStartRoundsBeforeFinal>=2: standard double elimination
-  let losersRounds = 0
-  if (losersStartRoundsBeforeFinal === 0) {
-    losersRounds = 0 // Pure single elimination
-  } else if (losersStartRoundsBeforeFinal === 1) {
-    losersRounds = 1 // Single match for 3rd place
-  } else {
-    // Standard: LB rounds = feederRounds * 2 - 1
-    losersRounds = feederRounds * 2 - 1
-  }
-
-  // Sort participants by seed
-  const sorted = [...participants].sort((a, b) => a.seed - b.seed)
-
-  // Create bracket structures
   const winnersMatches = createWinnersBracket(
     eventId,
     bracketSize,
@@ -79,84 +41,85 @@ export const generateDoubleElimination = (
     idFactory
   )
 
-  let losersMatches: BracketMatch[] = []
-  if (losersRounds > 0) {
-    losersMatches = createLosersBracket(
-      eventId,
-      bracketSize,
-      losersRounds,
-      startFromWbRound,
-      idFactory,
-      winnersRounds
-    )
+  const losersMatches =
+    losersRounds > 0
+      ? createLosersBracket(
+          eventId,
+          bracketSize,
+          losersRounds,
+          startFromWbRound,
+          idFactory
+        )
+      : []
 
-    // Wire loser routing from winners to losers bracket
+  if (losersMatches.length > 0) {
     wireLoserRouting(
       winnersMatches,
       losersMatches,
       winnersRounds,
-      startFromWbRound
+      startFromWbRound,
+      grandFinal !== 'none'
     )
   }
 
-  // Place participants in first round (seeded positions)
-  placeParticipants(winnersMatches, sorted, bracketSize)
+  const grandFinalMatches = createGrandFinal(eventId, grandFinal, idFactory)
+  if (grandFinalMatches.length > 0) {
+    wireGrandFinal(winnersMatches, losersMatches, grandFinalMatches[0])
+  }
 
-  const allMatches = [...winnersMatches, ...losersMatches]
+  placeParticipants(winnersMatches, participants, bracketSize)
 
-  // Process byes (auto-advance where opponent is missing)
-  processByes(allMatches)
+  const allMatches = [...winnersMatches, ...losersMatches, ...grandFinalMatches]
+  assertUniqueIds(allMatches)
+
+  resolveByes(allMatches)
 
   return allMatches
 }
 
+/** Sends both bracket winners into the grand final. */
+const wireGrandFinal = (
+  winnersMatches: TournamentMatch[],
+  losersMatches: TournamentMatch[],
+  grandFinalMatch: TournamentMatch
+): void => {
+  const lastOf = (matches: TournamentMatch[]): TournamentMatch | undefined =>
+    matches.reduce<TournamentMatch | undefined>(
+      (latest, match) =>
+        !latest || match.round > latest.round ? match : latest,
+      undefined
+    )
+
+  const winnersFinal = lastOf(winnersMatches)
+  if (winnersFinal) {
+    winnersFinal.winnerTo = grandFinalMatch.id
+    winnersFinal.winnerToSlot = 1
+  }
+
+  const losersFinal = lastOf(losersMatches)
+  if (losersFinal) {
+    losersFinal.winnerTo = grandFinalMatch.id
+    losersFinal.winnerToSlot = 2
+  }
+}
+
 const placeParticipants = (
-  matches: BracketMatch[],
+  matches: TournamentMatch[],
   participants: Participant[],
   bracketSize: number
 ): void => {
-  const round1 = matches.filter((m) => m.round === 1)
-  const seedMap = new Map(participants.map((p) => [p.seed, p.registrationId]))
+  const round1 = matches.filter((match) => match.round === 1)
+  const seedMap = new Map(
+    participants.map((participant) => [
+      participant.seed,
+      participant.registrationId,
+    ])
+  )
 
-  // Standard seeding: 1vN, 4v(N-3), 2v(N-1), 3v(N-2) pattern
-  const pairs = generateSeedPairs(bracketSize)
-
-  pairs.forEach(([seed1, seed2], idx) => {
-    const match = round1[idx]
-    if (match) {
-      match.registration1Id = seedMap.get(seed1) ?? null
-      match.registration2Id = seedMap.get(seed2) ?? null
-    }
+  generateSeedPairs(bracketSize).forEach(([seed1, seed2], index) => {
+    const match = round1[index]
+    if (!match) return
+    match.registration1Id = seedMap.get(seed1) ?? null
+    match.registration2Id = seedMap.get(seed2) ?? null
   })
-}
-
-/**
- * Generate seed pairs using standard tournament seeding algorithm.
- * This ensures seeds 1 and 2 can only meet in the finals,
- * seeds 1-4 can only meet in semifinals at earliest, etc.
- */
-const generateSeedPairs = (size: number): [number, number][] => {
-  // Build positions array iteratively, doubling each time
-  // [1, 2] -> [1, 4, 2, 3] -> [1, 8, 4, 5, 2, 7, 3, 6] -> ...
-  let positions = [1, 2]
-
-  while (positions.length < size) {
-    const newPositions: number[] = []
-    const sum = positions.length * 2 + 1
-
-    for (const pos of positions) {
-      newPositions.push(pos)
-      newPositions.push(sum - pos)
-    }
-
-    positions = newPositions
-  }
-
-  // Convert positions array to match pairs
-  // Adjacent positions form a match
-  const pairs: [number, number][] = []
-  for (let i = 0; i < positions.length; i += 2) {
-    pairs.push([positions[i], positions[i + 1]])
-  }
-  return pairs
 }

@@ -17,7 +17,7 @@ const Footer = () => {
               double-elimination
             </h3>
             <p className="text-muted text-sm">
-              Tournament bracket generation made simple
+              Brackets, leagues and standings for any tournament format
             </p>
           </div>
 
