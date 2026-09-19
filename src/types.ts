@@ -209,3 +209,44 @@ export interface Standing {
   scoreDifference: number
   points: number
 }
+
+/**
+ * How qualifiers are ordered before they are seeded into the next stage.
+ *
+ * - `'rankThenPoints'` (default): finishing position first, so every group
+ *   winner is seeded above every runner-up, and record separates the rows
+ *   that finished level. This is the usual shape of a seeded playoff draw.
+ * - `'pointsThenRank'`: record first, ignoring which group it was earned in.
+ *   Only fair when the groups are the same size and of comparable strength.
+ *
+ * Supply a comparator instead for anything else; it follows the
+ * `Array.prototype.sort` contract, so return a negative number when `a`
+ * should be seeded above `b`.
+ */
+export type QualifierOrder = 'rankThenPoints' | 'pointsThenRank'
+
+/** Orders two standings rows. Negative means `a` is seeded above `b`. */
+export type QualifierComparator = (a: Standing, b: Standing) => number
+
+export interface QualifiersOptions {
+  /** The table to read, typically the output of {@link calculateStandings}. */
+  standings: Standing[]
+  /**
+   * How many qualify from each group, taken by `rank`.
+   *
+   * `0` takes nobody automatically, which is how you select purely on record
+   * with `bestRemaining`.
+   */
+  perGroup?: number
+  /**
+   * Additionally take this many of the best rows that `perGroup` left behind,
+   * compared across every group.
+   *
+   * Under the default `order` this is the "best third-placed teams" rule:
+   * finishing position is compared first, so every third-placed row is
+   * considered ahead of every fourth-placed one. Defaults to `0`.
+   */
+  bestRemaining?: number
+  /** Defaults to `'rankThenPoints'`. */
+  order?: QualifierOrder | QualifierComparator
+}

@@ -3,6 +3,7 @@ export { generateSingleElimination } from './generateSingleElimination.js'
 export { generateDoubleElimination } from './generateDoubleElimination.js'
 export { generateRoundRobin } from './generateRoundRobin.js'
 export { calculateStandings } from './calculateStandings.js'
+export { qualifiersFromStandings } from './qualifiersFromStandings.js'
 
 export type {
   // Core
@@ -24,6 +25,10 @@ export type {
   Tiebreaker,
   StandingsOptions,
   Standing,
+  // Qualifiers
+  QualifiersOptions,
+  QualifierOrder,
+  QualifierComparator,
   // Deprecated aliases, kept so existing imports keep working
   BracketMatch,
   BracketType,
