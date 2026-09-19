@@ -29,6 +29,7 @@ import {
   generateRoundRobin,
   generateSingleElimination,
   generateTournament,
+  qualifiersFromStandings,
   type TournamentMatch,
 } from 'double-elimination'
 
@@ -285,15 +286,21 @@ const table = calculateStandings({
   tiebreakers: ['headToHead', 'scoreDifference', 'scoreFor', 'wins', 'seed'],
 })
 
-// Exactly the top two from every group
-const qualifiers = table.filter((row) => row.rank <= 2)
+// Exactly the top two from every group, seeded 1..N
+const qualifiers = qualifiersFromStandings({ standings: table, perGroup: 2 })
 
-// Best third-placed teams across groups
-const thirds = table
-  .filter((row) => row.rank === 3)
-  .sort((a, b) => b.points - a.points || b.scoreDifference - a.scoreDifference)
-  .slice(0, 4)
+// The top two, plus the four best third-placed teams across the groups
+const withThirds = qualifiersFromStandings({
+  standings: table,
+  perGroup: 2,
+  bestRemaining: 4,
+})
 ```
+
+`qualifiersFromStandings` will not guess at a tie: if two participants share
+the last qualifying rank it throws and names them, rather than advancing one by
+array order. Ending the tiebreakers with `'seed'`, as above, keeps the table
+strict so the cut is always decided.
 
 Without `seed`, inspect the ties instead of cutting through them:
 
@@ -329,19 +336,8 @@ const table = calculateStandings({
   tiebreakers: ['headToHead', 'scoreDifference', 'scoreFor', 'wins', 'seed'],
 })
 
-// Group winners are seeded above runners-up, then by points
-const qualifiers = table
-  .filter((row) => row.rank <= 2)
-  .sort(
-    (a, b) =>
-      a.rank - b.rank ||
-      b.points - a.points ||
-      b.scoreDifference - a.scoreDifference
-  )
-  .map((row, index) => ({
-    registrationId: row.registrationId,
-    seed: index + 1,
-  }))
+// Group winners are seeded above runners-up, then by record
+const qualifiers = qualifiersFromStandings({ standings: table, perGroup: 2 })
 
 const playoffs = generateDoubleElimination({
   eventId: 'champions-league-2026-playoffs',
@@ -353,6 +349,97 @@ const playoffs = generateDoubleElimination({
 
 Store the two stages as separate tournaments sharing an `eventId` prefix; each
 is a self-contained set of matches.
+
+### A 24-team field with best third-placed teams
+
+Six groups of four give twelve group qualifiers, four short of a sixteen-team
+bracket. `bestRemaining` makes up the difference from the teams left behind,
+comparing them across every group:
+
+```typescript
+const qualifiers = qualifiersFromStandings({
+  standings: table,
+  perGroup: 2,
+  bestRemaining: 4, // the four best third-placed teams
+})
+
+const knockout = generateSingleElimination({
+  eventId: 'euro-2026-knockout',
+  participants: qualifiers, // exactly 16, so nobody needs a bye
+  idFactory,
+})
+```
+
+Finishing position is compared before record, so every third-placed team is
+considered ahead of every fourth-placed one — no team qualifies over another
+that finished above it in its own group.
+
+### Seeding purely on record
+
+When the groups are the same size, you can ignore which group a result came
+from and seed on the stage as a whole:
+
+```typescript
+const qualifiers = qualifiersFromStandings({
+  standings: table,
+  perGroup: 2,
+  order: 'pointsThenRank',
+})
+```
+
+A runner-up with a better record now seeds above a weaker group winner. With
+`perGroup: 0` and a `bestRemaining`, finishing position stops mattering
+entirely and the best records in the stage advance:
+
+```typescript
+// The eight best records in the league, wherever they finished
+const playoffField = qualifiersFromStandings({
+  standings: table,
+  perGroup: 0,
+  bestRemaining: 8,
+  order: 'pointsThenRank',
+})
+```
+
+### Rules of your own
+
+Anything the two built-in orders do not cover is a comparator, following the
+`Array.prototype.sort` contract — return a negative number when `a` should be
+seeded above `b`:
+
+```typescript
+const seedOf = new Map(participants.map((p) => [p.registrationId, p.seed]))
+
+const qualifiers = qualifiersFromStandings({
+  standings: table,
+  perGroup: 2,
+  bestRemaining: 2,
+  // Finishing position, then record, then the seed they arrived with
+  order: (a, b) =>
+    a.rank - b.rank ||
+    b.points - a.points ||
+    b.scoreDifference - a.scoreDifference ||
+    seedOf.get(a.registrationId)! - seedOf.get(b.registrationId)!,
+})
+```
+
+### When the cut is tied
+
+Selection throws rather than advancing one participant over another by array
+order, which is what you want in a real competition:
+
+```typescript
+try {
+  return qualifiersFromStandings({ standings: table, perGroup: 2 })
+} catch (error) {
+  // "Group 1 has 2 participants tied on rank 2 for 1 remaining place(s):
+  //  "player-7", "player-11". Add 'seed' to the tiebreakers..."
+  return askOrganiserToResolve(error)
+}
+```
+
+Ending the tiebreakers with `'seed'` avoids it outright, since seeds are
+unique. Leave it off when a human should decide, and show them the tie.
 
 ## Picking a Format at Runtime
 

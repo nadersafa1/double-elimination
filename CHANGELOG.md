@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`qualifiersFromStandings`**, the step between two stages of a championship:
+  it turns a `Standing[]` into the seeded `Participant[]` the next stage needs,
+  so a group stage can feed a bracket without hand-rolling the cut.
+  - `perGroup` takes the top N of every group by `rank`; a table with no groups
+    counts as one pool
+  - `bestRemaining` additionally takes the best rows left behind, compared
+    across groups — under the default order, the "best third-placed teams" rule
+  - `order` seeds the qualifiers `1..N`: `'rankThenPoints'` (default) puts every
+    group winner above every runner-up, `'pointsThenRank'` compares record
+    first, and a comparator covers anything else
+  - A tie across the cut line throws and names the tied participants, rather
+    than advancing one of them by array order
+
 ## [2.0.0] - 2026-09-12
 
 Three formats instead of one. `double-elimination` now generates single

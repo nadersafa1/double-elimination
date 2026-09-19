@@ -43,8 +43,10 @@ const matches = generateTournament({
   - [generateDoubleElimination](#generatedoubleeliminationoptions)
   - [generateRoundRobin](#generateroundrobinoptions)
   - [calculateStandings](#calculatestandingsoptions)
+  - [qualifiersFromStandings](#qualifiersfromstandingsoptions)
 - [Double Elimination](#double-elimination)
 - [Round Robin](#round-robin)
+- [Multi-Stage Tournaments](#multi-stage-tournaments)
 - [Seeding](#seeding)
 - [Bye Handling](#bye-handling)
 - [Performance](#performance)
@@ -68,6 +70,8 @@ const matches = generateTournament({
   seasons, snake-seeded group stages
 - ✅ **Standings with tiebreakers** — points, head-to-head, score difference,
   score for, wins, seed — in the order your rules say
+- ✅ **Multi-stage championships** — take the qualifiers out of a group stage
+  and seed them into a bracket, without guessing at a tie
 - ✅ **Validated input** — duplicate seeds, duplicate ids and repeated match ids
   throw instead of corrupting the tournament
 - ✅ **Zero dependencies**, ESM and CommonJS builds, full TypeScript types
@@ -134,8 +138,9 @@ const table = calculateStandings({
 | Bad luck early         | ends your day                                | costs you the winners bracket                  | costs you three points                               |
 
 Mixing formats is common and fully supported: run `generateRoundRobin` with
-`groupCount` for the group stage, then feed the qualifiers into
-`generateDoubleElimination` as a new tournament with fresh seeds.
+`groupCount` for the group stage, then hand the table to
+`qualifiersFromStandings` and feed the result into `generateDoubleElimination`
+as a new tournament. See [Multi-Stage Tournaments](#multi-stage-tournaments).
 
 ## The Match Shape
 
@@ -315,6 +320,70 @@ Results come in two shapes, and you can mix them:
 
 A result naming an unknown match, a duplicate result, half a scoreline, or a
 winner who did not play in that match all throw.
+
+### `qualifiersFromStandings(options)`
+
+Selects who advances from a group stage and seeds them, turning a `Standing[]`
+into the `Participant[]` the next stage needs.
+
+```typescript
+const qualifiers = qualifiersFromStandings({
+  standings: table, // from calculateStandings
+  perGroup: 2, // top two of every group
+  bestRemaining: 0, // plus the best rows left behind, compared across groups
+  order: 'rankThenPoints', // how the qualifiers are seeded
+})
+
+const playoffs = generateDoubleElimination({
+  eventId: 'champions-2026-playoffs',
+  participants: qualifiers,
+  idFactory,
+  grandFinal: 'single',
+})
+```
+
+| Option          | Type                                                       | Default            | Description                                                   |
+| --------------- | ---------------------------------------------------------- | ------------------ | ------------------------------------------------------------- |
+| `standings`     | `Standing[]`                                               | —                  | The table to read, usually straight from `calculateStandings` |
+| `perGroup`      | `number`                                                   | `0`                | How many qualify from each group, taken by `rank`             |
+| `bestRemaining` | `number`                                                   | `0`                | Additionally take this many of the best rows `perGroup` left  |
+| `order`         | `'rankThenPoints' \| 'pointsThenRank' \| (a, b) => number` | `'rankThenPoints'` | How the qualifiers are ordered before being seeded `1..N`     |
+
+Pass at least one of `perGroup` and `bestRemaining`. A table with no groups
+(`group: null`) counts as a single pool, which is how you take the top eight of
+a league into a playoff.
+
+**Ordering.** `'rankThenPoints'` compares finishing position first, so every
+group winner is seeded above every runner-up and record only separates rows
+that finished level — the usual shape of a seeded draw. `'pointsThenRank'`
+compares record first and ignores which group it was earned in; only reach for
+it when the groups are the same size, since points across unequal groups are
+not comparable. Anything else is a comparator, following the
+`Array.prototype.sort` contract.
+
+`bestRemaining` follows the same order, so under the default it is the "best
+third-placed teams" rule: every third-placed row is considered ahead of every
+fourth-placed one. The rows it selects are seeded into the field rather than
+appended after it, so under `'pointsThenRank'` a strong third-placed team can
+outseed a weak group winner.
+
+**Ties.** Participants nothing separates share a rank, so a tie across the cut
+line would decide who advances by array order. It throws instead, naming the
+tied participants:
+
+```
+Group 1 has 2 participants tied on rank 2 for 1 remaining place(s):
+"player-7", "player-11". Add 'seed' to the tiebreakers passed to
+calculateStandings, or resolve the tie before selecting
+```
+
+End the `tiebreakers` you pass to `calculateStandings` with `'seed'` to
+guarantee a strict table, or resolve the tie yourself — a playoff, a drawing of
+lots — and rank again. A tie that sits entirely inside or entirely outside the
+qualifying places is not ambiguous and passes through.
+
+Seeding is a softer question, since everyone selected is through either way:
+qualifiers the `order` cannot separate keep the order they had in `standings`.
 
 ## Double Elimination
 
@@ -529,11 +598,13 @@ const table = calculateStandings({
   tiebreakers: ['headToHead', 'scoreDifference', 'scoreFor', 'wins', 'seed'],
 })
 
-const qualifiers = table.filter((row) => row.rank <= 2)
+const qualifiers = qualifiersFromStandings({ standings: table, perGroup: 2 })
 ```
 
 Leave `seed` out and a three-way tie really does give you three rows at rank 1 —
 which is the honest answer, and the one to show a human before a playoff draw.
+`qualifiersFromStandings` will then throw rather than cut through the tie; see
+[Multi-Stage Tournaments](#multi-stage-tournaments).
 
 Rows are ranked on points first, then by each tiebreaker in turn — and each
 tiebreaker only applies to the rows the previous one left level, exactly as a
@@ -558,6 +629,73 @@ calculateStandings({
   tiebreakers: ['scoreDifference', 'scoreFor', 'headToHead'],
 })
 ```
+
+## Multi-Stage Tournaments
+
+A championship is often more than one format: pools first, then a bracket for
+whoever survives them. Each stage is a self-contained set of matches, and
+`qualifiersFromStandings` is the join between them.
+
+```typescript
+// Stage 1 — eight groups of four
+const groupStage = generateRoundRobin({
+  eventId: 'champions-2026-groups',
+  participants,
+  idFactory,
+  groupCount: 8,
+})
+
+// ...play it, collecting results...
+
+const table = calculateStandings({
+  matches: groupStage,
+  results,
+  participants,
+  // 'seed' last, so the cut is always strict
+  tiebreakers: ['headToHead', 'scoreDifference', 'scoreFor', 'wins', 'seed'],
+})
+
+// Stage 2 — the sixteen who came through, seeded by how they finished
+const playoffs = generateDoubleElimination({
+  eventId: 'champions-2026-playoffs',
+  participants: qualifiersFromStandings({ standings: table, perGroup: 2 }),
+  idFactory,
+  grandFinal: 'single',
+})
+```
+
+Formats mix in any combination: groups into a single elimination bracket,
+a first-round knockout into a round robin final pool, three stages, or a
+consolation bracket for the participants `qualifiersFromStandings` left behind.
+
+### What the package does, and what your application does
+
+Every function here is pure: participants and options go in, matches or rows
+come out, and nothing is remembered between calls. That boundary is deliberate,
+and it is what makes a mixed-format championship the application's to own.
+
+The package handles the parts that are the same everywhere:
+
+- generating each stage's fixtures
+- ranking a stage that has been played
+- deciding who advances, and what seeds they carry into the next stage
+
+Your application handles the parts that are yours:
+
+- **storage** — the matches and the results live in your database
+- **lifecycle** — what "the group stage is finished" means for you, whether
+  that is every result recorded, a deadline passing, or an admin pressing a
+  button
+- **generating the next stage at the right moment**, since stage 2 does not
+  exist until stage 1 is decided
+- **overrides** — withdrawals, disqualifications, wildcards, a qualifier you
+  replace by hand
+- **scheduling, venues and presentation**
+
+Give each stage its own `eventId` — `'champions-2026-groups'` and
+`'champions-2026-playoffs'` above — so its matches stay easy to query, and
+store the relationship between stages in your own schema. The package never
+needs to know that the two are connected.
 
 ## Seeding
 
