@@ -7,8 +7,8 @@ import { createMatch } from './participants.js'
  * The reset is wired so that generic winner/loser propagation keeps working:
  * both players of grand final 1 carry over into grand final 2. It is only
  * *played* when the losers bracket representative wins grand final 1 — if the
- * winners bracket representative wins it, they are champion and match 2 is
- * dropped.
+ * winners bracket representative wins it, they are champion and
+ * `recordResult` drops match 2.
  */
 export const createGrandFinal = (
   eventId: string,

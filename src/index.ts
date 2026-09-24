@@ -4,6 +4,7 @@ export { generateDoubleElimination } from './generateDoubleElimination.js'
 export { generateRoundRobin } from './generateRoundRobin.js'
 export { calculateStandings } from './calculateStandings.js'
 export { qualifiersFromStandings } from './qualifiersFromStandings.js'
+export { recordResult } from './recordResult.js'
 
 export type {
   // Core

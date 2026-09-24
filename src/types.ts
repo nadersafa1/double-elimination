@@ -73,7 +73,8 @@ export interface BaseOptions {
  *   winner once for the title.
  * - `'reset'`: as `'single'`, plus a bracket-reset match. The reset is played
  *   only when the losers bracket representative wins the first grand final,
- *   so that both finalists have been beaten twice.
+ *   so that both finalists have been beaten twice. `recordResult` removes it
+ *   when the winners bracket representative wins instead.
  */
 export type GrandFinalFormat = 'none' | 'single' | 'reset'
 

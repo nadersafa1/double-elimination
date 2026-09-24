@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`recordResult`** records a bracket result and moves the winner and loser on
+  through `winnerTo` / `loserTo`. When the winners bracket representative wins
+  the first grand final, the bracket reset match is dropped automatically, so
+  callers no longer have to skip it themselves.
+
 ## [2.1.0] - 2026-09-19
 
 ### Added

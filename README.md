@@ -44,6 +44,7 @@ const matches = generateTournament({
   - [generateRoundRobin](#generateroundrobinoptions)
   - [calculateStandings](#calculatestandingsoptions)
   - [qualifiersFromStandings](#qualifiersfromstandingsoptions)
+  - [recordResult](#recordresultmatches-result)
 - [Double Elimination](#double-elimination)
 - [Round Robin](#round-robin)
 - [Multi-Stage Tournaments](#multi-stage-tournaments)
@@ -174,36 +175,15 @@ interface TournamentMatch {
 
 ### Applying a result
 
-Brackets carry their own wiring, so recording a result is the same three lines
-whatever the format:
+Brackets carry their own wiring, so recording a result is one call whatever the
+format:
 
 ```typescript
-const applyResult = (
-  matches: TournamentMatch[],
-  matchId: string,
-  winnerId: string
-) => {
-  const match = matches.find((m) => m.id === matchId)!
-  const loserId =
-    winnerId === match.registration1Id
-      ? match.registration2Id
-      : match.registration1Id
-
-  const place = (
-    targetId: string | null,
-    slot: number | null,
-    who: string | null
-  ) => {
-    if (!targetId || !slot || !who) return
-    const target = matches.find((m) => m.id === targetId)!
-    if (slot === 1) target.registration1Id = who
-    else target.registration2Id = who
-  }
-
-  place(match.winnerTo, match.winnerToSlot, winnerId)
-  place(match.loserTo, match.loserToSlot, loserId)
-}
+matches = recordResult(matches, { matchId, winnerId: 'player-7' })
 ```
+
+The winner moves to `winnerTo`, the loser to `loserTo`, and an unneeded bracket
+reset is removed for you. See [`recordResult`](#recordresultmatches-result).
 
 Round robin matches have no routing — rank them with
 [`calculateStandings`](#calculatestandingsoptions) instead.
@@ -385,6 +365,28 @@ qualifying places is not ambiguous and passes through.
 Seeding is a softer question, since everyone selected is through either way:
 qualifiers the `order` cannot separate keep the order they had in `standings`.
 
+### `recordResult(matches, result)`
+
+Records a bracket result and moves both players on. Returns a new array of new
+match objects; the input is not modified.
+
+```typescript
+matches = recordResult(matches, { matchId, score1: 3, score2: 1 })
+matches = recordResult(matches, { matchId, winnerId: 'player-7' })
+```
+
+- The winner is placed in `winnerTo` and the loser in `loserTo`.
+- When the winners bracket representative (slot 1) wins the first grand final,
+  the bracket reset match is **removed** from the returned array and the first
+  grand final's `winnerTo` / `loserTo` are cleared, since the champion is
+  decided. Delete that match from your storage too.
+- An unknown match, a match without two participants yet, a draw, a winner who
+  did not play in the match, and a result that would overwrite a different
+  player already in the next match all throw.
+
+Round robin matches have no routing; rank them with
+[`calculateStandings`](#calculatestandingsoptions) instead.
+
 ## Double Elimination
 
 ### Placements
@@ -476,8 +478,11 @@ With `'reset'` the grand final is two matches, `round: 1` and `round: 2`. Match
 2 is **only played when the losers bracket representative wins match 1**;
 otherwise the winners bracket representative is champion with an unbeaten
 record and match 2 is dropped. Both finalists are routed into it (`winnerTo`
-into slot 1, `loserTo` into slot 2) so the usual propagation works unchanged —
-your code decides whether it happens:
+into slot 1, `loserTo` into slot 2).
+
+[`recordResult`](#recordresultmatches-result) handles this for you: when slot 1
+wins match 1, the reset is removed from the returned matches. If you propagate
+results yourself, the rule is:
 
 ```typescript
 const [grandFinal, reset] = matches

@@ -34,11 +34,13 @@ assert.equal(typeof esm.generateDoubleElimination, 'function')
 assert.equal(esm.generateDoubleElimination(options).length, 4)
 assert.equal(typeof esm.qualifiersFromStandings, 'function')
 assert.equal(esm.qualifiersFromStandings({ standings, perGroup: 2 }).length, 2)
+assert.equal(typeof esm.recordResult, 'function')
 
 const cjs = require('../dist/cjs/index.js')
 assert.equal(typeof cjs.generateDoubleElimination, 'function')
 assert.equal(cjs.generateDoubleElimination(options).length, 4)
 assert.equal(typeof cjs.qualifiersFromStandings, 'function')
 assert.equal(cjs.qualifiersFromStandings({ standings, perGroup: 2 }).length, 2)
+assert.equal(typeof cjs.recordResult, 'function')
 
 console.log('package loads via import and require')
